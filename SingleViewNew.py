@@ -1,18 +1,33 @@
 from flask import Flask, render_template, session, redirect, url_for
+from src.warehouse import *
+from pykafka import KafkaClient
+import pymongo
 
 app = Flask(__name__)
 
-@app.route('/')
-def hello_world():
+mongodbURI = 'mongodb://localhost/local'
+mongoClient = pymongo.MongoClient(mongodbURI)
+
+kafkaClient = KafkaClient(hosts="127.0.0.1:9092")
+
+
+
+sourceDB1 = SourceDb.register(name='sourcedb1',kafkaclient=kafkaClient,mongodclient=mongoClient)
+sourceDB2 = SourceDb(name='sourcedb2',kafkaclient=kafkaClient,mongodclient=mongoClient)
+singleViewDB = SingleViewDb(name='singleviewDb',kafkaclient=kafkaClient,mongodclient=mongoClient)
+#searchCache =
+
+@app.route('/test')
+def test():
     return 'Hello World!'
 
-@app.route('/', methods=['GET', 'POST'])
+
+
+
+@app.route('/')
 def index():
-    form = NameForm()
-    if form.validate_on_submit():
-        session['name'] = form.name.data
-        return redirect(url_for('index'))
-    return render_template('index.html', form=form, name=session.get('name'))
+    return 'Hello World!'
+
 
 if __name__ == '__main__':
     app.run()

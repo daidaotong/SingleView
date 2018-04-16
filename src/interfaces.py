@@ -41,15 +41,19 @@ class ApplicationWarehouseABC(object):
     def get_mongod(self):
         self.source_db = self.mongod_client.get_database()[self.name]
 
-    def delta_load(self,record):
-        pass
-
 
     def insert_one(self,record):
         self.source_db.insert_one(record)
 
     def insert_many(self,records):
         self.source_db.insert_many(records)
+
+    def get_one(self):
+        return self.source_db.find_one()
+
+    def get_many(self):
+        recordPointer = self.source_db.find()
+        return [record for record in recordPointer]
 
 
 #the search engine class holds the infos of similarity and will forward the searching into the singleview database
