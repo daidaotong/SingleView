@@ -19,6 +19,7 @@ singleViewDB = SingleViewDb(name='singleviewDb',kafkaclient=kafkaClient,mongodcl
 
 @app.route('/test')
 def test():
+    sourceDB1.initial_load()
     return 'Hello World!'
 
 
@@ -30,4 +31,4 @@ def index():
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)

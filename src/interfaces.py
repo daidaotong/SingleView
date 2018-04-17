@@ -36,7 +36,7 @@ class ApplicationWarehouseABC(object):
 
 
     def get_kafka_topic(self):
-        self.delta_sending_topic = self.kafka_client.topics[self.name]
+        return  self.kafka_client.topics[self.name]
 
     def get_mongod(self):
         self.source_db = self.mongod_client.get_database()[self.name]
