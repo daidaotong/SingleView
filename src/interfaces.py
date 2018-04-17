@@ -18,13 +18,14 @@ class ApplicationWarehouseABC(object):
 
 
     @classmethod
-    def register(cls, kafkaclient,mongodclient,*args, **kwargs):
+    def register(cls, kafkaclient,mongodclient,zkclient,*args, **kwargs):
 
         s = cls(*args, **kwargs)
         s._set_kafka_client(kafkaclient)
         s._set_mongod_client(mongodclient)
-        s.get_kafka_topic()
-        s.get_mongod()
+        s.zkclient = zkclient
+        #s.get_kafka_topic()
+        #s.get_mongod()
 
         return s
 
