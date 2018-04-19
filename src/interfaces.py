@@ -7,7 +7,7 @@ class ApplicationWarehouseABC(object):
     kafka_client = None
     mongod_client = None
     delta_sending_topic = None
-    source_db = None
+    #source_db = None
 
     def __init__(self, name=None, **kwargs):
         if name is not None:
@@ -24,6 +24,7 @@ class ApplicationWarehouseABC(object):
         s._set_kafka_client(kafkaclient)
         s._set_mongod_client(mongodclient)
         s.zkclient = zkclient
+        s.db_repo = s.mongod_client.get_database()[s.name]
         #s.get_kafka_topic()
         #s.get_mongod()
 
@@ -40,20 +41,20 @@ class ApplicationWarehouseABC(object):
         return  self.kafka_client.topics[self.name]
 
     def get_mongod(self):
-        self.source_db = self.mongod_client.get_database()[self.name]
+        return self.db_repo
 
 
     def insert_one(self,record):
-        self.source_db.insert_one(record)
+        self.db_repo.insert_one(record)
 
     def insert_many(self,records):
-        self.source_db.insert_many(records)
+        self.db_repo.insert_many(records)
 
     def get_one(self):
-        return self.source_db.find_one()
+        return self.db_repo.find_one()
 
     def get_many(self):
-        recordPointer = self.source_db.find()
+        recordPointer = self.db_repo.find()
         return [record for record in recordPointer]
 
 
@@ -85,6 +86,8 @@ class SearchCacheABC(object):
     def searchCache(self):
         pass
 
+class sendingMessage():
 
-
-
+    def __init__(self,type,value):
+        self.type = type
+        self.value = value
