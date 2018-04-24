@@ -77,7 +77,6 @@ class Consumer_Thread_Manager():
         while not self.stoprequest.isSet():
             try:
                 update_body = self.event_queue.get(True, 0.5)
-                #TODO: UPDATE INFO INTO SINGLEVIEW DATABASE
 
                 print "fhfhfhfhff"
                 print update_body
@@ -85,14 +84,20 @@ class Consumer_Thread_Manager():
                 if update_body.has_key('type') and update_body.has_key('value'):
                     if update_body['type'] == 'insert':
                         print "Insert lalalallala"
-                        print update_body['value']
+                        print json.loads(update_body['value'])
                         self.singleViewClient.insert_many(json.loads(update_body['value']))
                     elif update_body['type'] == 'delete':
                         print "Got delete command"
                         print update_body['value']
+                        self.singleViewClient.remove(json.loads(update_body['value']))
                     elif update_body['type'] == 'update':
                         print "Got update command"
                         print update_body['value']
+                        updateBodyQuery = json.loads(update_body['value']['query'])
+                        updateBodyUpdate = {"$set":json.loads(update_body['value']['update'])}
+
+
+                        self.singleViewClient.update(updateBodyQuery,updateBodyUpdate,upsert = False,multi = True)
                     else:
                         raise Exception('Invalid Data format')
                 else:
@@ -109,9 +114,6 @@ class Consumer_Thread_Manager():
 
     def stop_event_queue_daemon(self):
         self.stoprequest.set()
-
-
-
 
 
     def add_kafka_consumer(self):
@@ -168,7 +170,8 @@ class SourceDb(ApplicationWarehouseABC):
 
     def insert_tag(self,singleRecord):
         singleRecord[self.TagName] = self.name
-        del singleRecord['_id']
+        if singleRecord.has_key('_id'):
+            del singleRecord['_id']
         return singleRecord
 
 
@@ -208,7 +211,7 @@ class SourceDb(ApplicationWarehouseABC):
 
             recordSend = self.insert_tag(record)
 
-            recordSendJson = json.dumps(recordSend)
+            recordSendJson = json.dumps([recordSend])
 
             sendingobject = sendingMessage('insert', recordSendJson)
 
@@ -266,3 +269,9 @@ class SourceDb(ApplicationWarehouseABC):
             self.db_repo.update(query,update)
 
 
+
+    def local_query(self,query):
+        return self.db_repo.find(query)
+
+    def singleview_query(self):
+        pass

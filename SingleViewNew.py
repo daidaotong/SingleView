@@ -44,10 +44,12 @@ if __name__ == '__main__':
     print '*****************'
     time.sleep(5)
     sourceDB1.initial_load()
+    #time.sleep(5)
+    sourceDB1.delta_load('update',record = '',query={'aa':33},update = {'aa':44})
     time.sleep(5)
-    sourceDB1.delta_load('update',record = '',query={'bb':22},update = {'bb':33})
+    #sourceDB1.delta_load('delete', record='', query={'bb': 33}, update='')
     #sourceDB2.initial_load()
-    time.sleep(5)
-    sourceDB1.delta_load('insert', record={'bb': 22}, query={'bb': 22}, update={'bb': 33})
+    #time.sleep(5)
+    #sourceDB1.delta_load('insert', record={'bb': 22}, query='', update='')
     time.sleep(100)
 
