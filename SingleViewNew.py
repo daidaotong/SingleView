@@ -1,9 +1,12 @@
 from flask import Flask, render_template, session, redirect, url_for
 from src.warehouse import *
+from src.ehrParser import *
 from pykafka import KafkaClient
 import pymongo
 import time
 from datetime import datetime
+
+'''
 
 app = Flask(__name__)
 
@@ -34,19 +37,33 @@ def test():
 def index():
     return 'Hello World!'
 
+'''
 
 if __name__ == '__main__':
     #app.run(debug=True)
     #sourceDB1.initial_load()
     #sourceDB2.initial_load()
-    singleViewDB.set_up_topics(topics=['sourcedb1', 'sourcedb2'])
-    singleViewDB.create_consumer_manager()
-    print '*****************'
-    time.sleep(5)
-    sourceDB1.initial_load()
+
+    #singleViewDB.set_up_topics(topics=['sourcedb1', 'sourcedb2'])
+    #singleViewDB.create_consumer_manager()
+    #print '*****************'
     #time.sleep(5)
-    sourceDB1.delta_load('update',record = '',query={'aa':33},update = {'aa':44})
-    time.sleep(5)
+    #sourceDB1.initial_load()
+    #a = sourceDB1.local_query({"bb":33})
+    '''
+    for i in a:
+        print "7777777777777"
+        print i
+        
+    '''
+
+    positive,negative = ParseDirectory("/Users/danieldai/Desktop/med")
+    print len(positive)
+
+    #print "ggggggggggggggggggg"
+    #time.sleep(5)
+    #sourceDB1.delta_load('update',record = '',query={'aa':33},update = {'aa':44})
+    #time.sleep(5)
     #sourceDB1.delta_load('delete', record='', query={'bb': 33}, update='')
     #sourceDB2.initial_load()
     #time.sleep(5)

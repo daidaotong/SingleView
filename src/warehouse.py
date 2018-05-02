@@ -1,5 +1,6 @@
 from interfaces import *
-import threading,Queue
+import threading
+import Queue as q
 import json
 from pykafka import *
 from pykafka.common import OffsetType
@@ -38,7 +39,7 @@ class ComsumerThread(threading.Thread):
 class Consumer_Thread_Manager():
     def __init__(self,singleviewClient,topics,zk_connect,kafkaclient,*args, **kwargs):
         self.singleViewClient = singleviewClient
-        self.event_queue = Queue.Queue()
+        self.event_queue = q.Queue()
         self.sourceDb_consumer_thread_map = dict()
         self.topics = topics
         self.zkconnect = zk_connect
@@ -103,7 +104,7 @@ class Consumer_Thread_Manager():
                 else:
                     raise Exception('Invalid Data format')
 
-            except Queue.Empty:
+            except q.Empty:
                 print 'Empty Queue'
                 continue
 
@@ -273,5 +274,21 @@ class SourceDb(ApplicationWarehouseABC):
     def local_query(self,query):
         return self.db_repo.find(query)
 
-    def singleview_query(self):
-        pass
+    def singleview_query(self,query):
+
+        sendingTopic = self.get_kafka_topic()
+
+        querySendJson = json.dumps(query)
+
+        sendingobject = sendingMessage('query', querySendJson)
+
+        if self.kafka_client != None:
+
+            try:
+                with sendingTopic.get_sync_producer() as producer:
+                    producer.produce(json.dumps(sendingobject.__dict__))
+            except Exception as e:
+                print 'got exception'
+                print e
+
+
