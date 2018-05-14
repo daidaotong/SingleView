@@ -1,6 +1,8 @@
 from flask import Flask, render_template, session, redirect, url_for
 from src.warehouse import *
 from src.ehrParser import *
+from src.similarities import *
+from src.evaluation import *
 from pykafka import KafkaClient
 import pymongo
 import time
@@ -57,8 +59,14 @@ if __name__ == '__main__':
         
     '''
 
-    positive,negative = ParseDirectory("/Users/danieldai/Desktop/med")
-    print len(positive)
+    totalData = ParseDirectory("/Users/danieldai/Desktop/med")
+    print len(totalData)
+
+    simvalue = SimilaritiesCauculation(dataDict=totalData, calcuMethod=newTFIDF)
+    #simvalue = SimilaritiesCauculation(dataDict=totalData, calcuMethod=traditionalTFIDF)
+    print simvalue
+    calculateErrorRate(simvalue)
+    #SimilaritiesCauculation(dataDict=totalData, calcuMethod=traditionalTFIDF)
 
     #print "ggggggggggggggggggg"
     #time.sleep(5)
