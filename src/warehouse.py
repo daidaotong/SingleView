@@ -97,8 +97,19 @@ class Consumer_Thread_Manager():
                         updateBodyQuery = json.loads(update_body['value']['query'])
                         updateBodyUpdate = {"$set":json.loads(update_body['value']['update'])}
 
-
                         self.singleViewClient.update(updateBodyQuery,updateBodyUpdate,upsert = False,multi = True)
+                    elif update_body['type'] == 'query':
+                        print "Got query command"
+                        print update_body['value']
+                        #TODO: 1. insery similarity tags 2. query 3 sent back
+                        self.singleViewClient.find(json.loads(update_body['value']))
+
+                    elif update_body['type'] == 'similarityquery':
+                        print "Got similarityquery command"
+                        print update_body['value']
+                        #TODO: insery similarity tags
+                        self.singleViewClient.find(json.loads(update_body['value']))
+
                     else:
                         raise Exception('Invalid Data format')
                 else:
@@ -140,6 +151,14 @@ class SingleViewDb(ApplicationWarehouseABC):
 
     def set_up_topics(self,topics):
         self.topics = topics
+
+    def set_up_searchingCache(self):
+        self.similarityCache =
+
+
+
+
+
 
 
 
@@ -185,10 +204,6 @@ class SourceDb(ApplicationWarehouseABC):
         records = self.get_many()
         print records
         records = [self.insert_tag(r) for r in records]
-
-        print "insert------------"
-        print records
-        print "insert------------"
 
         recordsJson = json.dumps(records)
 
@@ -274,13 +289,22 @@ class SourceDb(ApplicationWarehouseABC):
     def local_query(self,query):
         return self.db_repo.find(query)
 
-    def singleview_query(self,query):
+    def singleview_query(self,type,query):
 
         sendingTopic = self.get_kafka_topic()
 
         querySendJson = json.dumps(query)
 
-        sendingobject = sendingMessage('query', querySendJson)
+        sendingobject = None
+
+        if type == 'query':
+            #calculate the similarities of the field levenstein distance or word2vec
+            sendingobject = sendingMessage('query', querySendJson)
+
+        elif type == 'similarityquery':
+            #calculate the similarities of the field levenstein distance or word2vec
+            sendingobject = sendingMessage('similarityquery', querySendJson)
+
 
         if self.kafka_client != None:
 

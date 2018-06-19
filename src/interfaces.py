@@ -65,11 +65,14 @@ class SearchCacheABC(object):
         self.__dict__.update(kwargs)
 
     @classmethod
-    def initSearchCache(cls,confdLevel,content, *args, **kwargs):
+    def initSearchCache(cls,confdLevel,fieldNameSimilarity,hybridSimilarity, *args, **kwargs):
 
-        if isinstance(content,dict):
+        #fieldname similarity holds the
+        if isinstance(fieldNameSimilarity,dict) and isinstance(hybridSimilarity,dict):
             s = cls(*args, **kwargs)
-            s._content = content
+            #s._content = content
+            s._fieldNameSimilarity = fieldNameSimilarity
+            s._HybridSimilarity = hybridSimilarity
             s._confdLevel = confdLevel
 
         else:
@@ -83,11 +86,18 @@ class SearchCacheABC(object):
     def resetConfdLevel(self,confdLevel):
         self._confdLevel = confdLevel
 
-    def searchCache(self):
-        pass
+    def searchCache(self,isFieldName,searchContent):
+        if isFieldName:
+            pass
+        else:
+            pass
+
 
 class sendingMessage():
 
     def __init__(self,type,value):
         self.type = type
         self.value = value
+
+    def withSource(self,source):
+        self.source = source

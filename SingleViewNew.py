@@ -8,7 +8,7 @@ import pymongo
 import time
 from datetime import datetime
 
-'''
+
 
 app = Flask(__name__)
 
@@ -26,6 +26,8 @@ sourceDB2 = SourceDb.register(name='sourcedb2',kafkaclient=kafkaClient,mongodcli
 singleViewDB = SingleViewDb.register(name='singleviewDb',kafkaclient=kafkaClient,mongodclient=mongoClient,zkclient=zkclientAdr)
 #searchCache =
 
+
+'''
 @app.route('/test')
 def test():
     sourceDB1.initial_load()
@@ -43,11 +45,11 @@ def index():
 
 if __name__ == '__main__':
     #app.run(debug=True)
-    #sourceDB1.initial_load()
+    sourceDB1.initial_load()
     #sourceDB2.initial_load()
 
-    #singleViewDB.set_up_topics(topics=['sourcedb1', 'sourcedb2'])
-    #singleViewDB.create_consumer_manager()
+    singleViewDB.set_up_topics(topics=['sourcedb1', 'sourcedb2'])
+    singleViewDB.create_consumer_manager()
     #print '*****************'
     #time.sleep(5)
     #sourceDB1.initial_load()
@@ -60,7 +62,8 @@ if __name__ == '__main__':
     '''
 
     totalData = ParseDirectory("/Users/danieldai/Desktop/med")
-    print len(totalData)
+    #print len(totalData)
+    #print totalData
 
     simvalue = SimilaritiesCauculation(dataDict=totalData, calcuMethod=newTFIDF)
     #simvalue = SimilaritiesCauculation(dataDict=totalData, calcuMethod=traditionalTFIDF)
@@ -75,6 +78,6 @@ if __name__ == '__main__':
     #sourceDB1.delta_load('delete', record='', query={'bb': 33}, update='')
     #sourceDB2.initial_load()
     #time.sleep(5)
-    #sourceDB1.delta_load('insert', record={'bb': 22}, query='', update='')
+    sourceDB1.delta_load('insert', record={'bb': 22}, query='', update='')
     time.sleep(100)
 
