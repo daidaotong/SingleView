@@ -1,9 +1,12 @@
+import six.moves
+from six.moves import urllib_parse
+print six.__file__
+from pykafka import KafkaClient
 from flask import Flask, render_template, session, redirect, url_for
 from src.warehouse import *
 from src.ehrParser import *
 from src.similarities import *
 from src.evaluation import *
-from pykafka import KafkaClient
 import pymongo
 import time
 from datetime import datetime
@@ -22,8 +25,15 @@ zkclientAdr = '127.0.0.1:2181'
 
 
 sourceDB1 = SourceDb.register(name='sourcedb1',kafkaclient=kafkaClient,mongodclient=mongoClient,zkclient=zkclientAdr)
+sourceDB1.set_prescription_type("dental_pain")
 sourceDB2 = SourceDb.register(name='sourcedb2',kafkaclient=kafkaClient,mongodclient=mongoClient,zkclient=zkclientAdr)
+sourceDB2.set_prescription_type("dental_illness")
 singleViewDB = SingleViewDb.register(name='singleviewDb',kafkaclient=kafkaClient,mongodclient=mongoClient,zkclient=zkclientAdr)
+#singleViewDB.set_up_topics(topics=['sourcedb1', 'sourcedb2'])
+singleViewDB.register_source("sourcedb1","dental_pain")
+singleViewDB.register_source("sourcedb2","dental_illness")
+singleViewDB.create_consumer_manager()
+singleViewDB.set_searchingcache()
 #searchCache =
 
 
@@ -45,11 +55,22 @@ def index():
 
 if __name__ == '__main__':
     #app.run(debug=True)
-    sourceDB1.initial_load()
+    #sourceDB1.initial_load()
     #sourceDB2.initial_load()
 
-    singleViewDB.set_up_topics(topics=['sourcedb1', 'sourcedb2'])
-    singleViewDB.create_consumer_manager()
+
+
+    print ":::::::::::::::::::::::"
+    print [i for i in sourceDB1.local_query({'bb':11})]
+    print ":::::::::::::::::::::::"
+    print sourceDB1.singleview_query("query",{'bb':11},10000)
+
+    print "5555555555555555555555555"
+    print sourceDB1.singleview_query("similarityquery", {'bb': 11}, 10000)
+    print ":::::::::::::::::::::::"
+    print "finish ************"
+
+
     #print '*****************'
     #time.sleep(5)
     #sourceDB1.initial_load()
@@ -60,15 +81,16 @@ if __name__ == '__main__':
         print i
         
     '''
-
-    totalData = ParseDirectory("/Users/danieldai/Desktop/med")
+    #recordPointer = mongoClient.get_database()["singleview"].find()
+    #print [record for record in recordPointer]
+    #totalData = ParseDirectory("/Users/danieldai/Desktop/med")
     #print len(totalData)
     #print totalData
 
-    simvalue = SimilaritiesCauculation(dataDict=totalData, calcuMethod=newTFIDF)
+    #simvalue = SimilaritiesCauculation(dataDict=totalData, calcuMethod=newTFIDF)
     #simvalue = SimilaritiesCauculation(dataDict=totalData, calcuMethod=traditionalTFIDF)
-    print simvalue
-    calculateErrorRate(simvalue)
+    #print simvalue
+    #calculateErrorRate(simvalue)
     #SimilaritiesCauculation(dataDict=totalData, calcuMethod=traditionalTFIDF)
 
     #print "ggggggggggggggggggg"
@@ -78,6 +100,6 @@ if __name__ == '__main__':
     #sourceDB1.delta_load('delete', record='', query={'bb': 33}, update='')
     #sourceDB2.initial_load()
     #time.sleep(5)
-    sourceDB1.delta_load('insert', record={'bb': 22}, query='', update='')
+    #sourceDB1.delta_load('insert', record={'bb': 22}, query='', update='')
     time.sleep(100)
 

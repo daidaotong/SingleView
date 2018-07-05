@@ -17,19 +17,6 @@ class ApplicationWarehouseABC(object):
         self.__dict__.update(kwargs)
 
 
-    @classmethod
-    def register(cls, kafkaclient,mongodclient,zkclient,*args, **kwargs):
-
-        s = cls(*args, **kwargs)
-        s._set_kafka_client(kafkaclient)
-        s._set_mongod_client(mongodclient)
-        s.zkclient = zkclient
-        s.db_repo = s.mongod_client.get_database()[s.name]
-        #s.get_kafka_topic()
-        #s.get_mongod()
-
-        return s
-
     def _set_kafka_client(self,kafkaClient):
         self.kafka_client = kafkaClient
 
@@ -37,8 +24,13 @@ class ApplicationWarehouseABC(object):
         self.mongod_client = mongodClient
 
 
-    def get_kafka_topic(self):
-        return  self.kafka_client.topics[self.name]
+    def get_kafka_topic(self,topicName):
+        return  self.kafka_client.topics[topicName]
+
+    def remove_id(self, singleRecord):
+        if singleRecord.has_key('_id'):
+            del singleRecord['_id']
+        return singleRecord
 
     def get_mongod(self):
         return self.db_repo
@@ -64,22 +56,6 @@ class SearchCacheABC(object):
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
-    @classmethod
-    def initSearchCache(cls,confdLevel,fieldNameSimilarity,hybridSimilarity, *args, **kwargs):
-
-        #fieldname similarity holds the
-        if isinstance(fieldNameSimilarity,dict) and isinstance(hybridSimilarity,dict):
-            s = cls(*args, **kwargs)
-            #s._content = content
-            s._fieldNameSimilarity = fieldNameSimilarity
-            s._HybridSimilarity = hybridSimilarity
-            s._confdLevel = confdLevel
-
-        else:
-            raise ValueError("Content must be dict")
-
-
-
     def resetContent(self,content):
         self._content = content
 
@@ -101,3 +77,21 @@ class sendingMessage():
 
     def withSource(self,source):
         self.source = source
+        return self
+
+    def withFieldName(self,fieldName):
+        self.fieldname = fieldName
+        return self
+
+    def withLocalQueryResults(self,localQuery):
+        self.localquery = localQuery
+        return self
+
+    def withReturnTopic(self,topic):
+        self.returntopic = topic
+        return self
+
+    def withUUID(self,uuid):
+        self.uuid = uuid
+        return self
+
