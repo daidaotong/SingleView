@@ -23,7 +23,6 @@ def calculatePresTypeDistanceMatrix(presList):
 
         nameListLength = len(presList)
         nameDistanceList = [[0 for _ in range(nameListLength)] for _ in range(nameListLength)]
-        print nameDistanceList
         for i in range(nameListLength):
                 firstPrescription = presList[i]
                 for j in range(i + 1, nameListLength):
@@ -157,8 +156,8 @@ class newTfidfModel(models.TfidfModel):
 
                         tf_array = self.wlocal(np.array(tf_array))
 
-                        print presType
-                        print self.idfMat.get(presType).get(termid,0.0)
+                        #print presType
+                        #print self.idfMat.get(presType).get(termid,0.0)
                         vector = [
                                 (termid, tf * self.idfMat.get(presType).get(termid))
                                 for termid, tf in zip(termid_array, tf_array) if
@@ -238,13 +237,11 @@ class SimilarityCache(SearchCacheABC):
 
     #input as tuple with 1.prestype, 2,document content 3. key Id
     def loadData(self,documents,numTopics = 5):
-        print "hahahha"
-        print documents
+
         corpus = [(document[0],[word for word in utils.simple_preprocess(str(document[1]), deacc=True) if
                    not self.hasCommonWords(word)])
                  for document in documents]
 
-        print corpus
         self.documentIds = [document[2] for document in documents]
 
         self.dictionary = corpora.Dictionary([i[1] for i in corpus])
@@ -255,7 +252,9 @@ class SimilarityCache(SearchCacheABC):
         #TODO:calculate ans save the tfidf model
         self.tfidf_model = newTfidfModel(bow_corpus)
 
-        print self.tfidf_model
+        print "hahahhahhahahahhaha"
+        print bow_corpus
+        print self.tfidf_model[bow_corpus[0]]
 
         #TODO: calculate and save the lda model
         self.lda = models.LdaModel(self.tfidf_model[bow_corpus], id2word=self.dictionary, num_topics=numTopics)
@@ -266,12 +265,13 @@ class SimilarityCache(SearchCacheABC):
     #return the
     def getSimilarRecordWithThreshold(self,threshold = 0.75,localQueries = None,rawResult = None,sourceType = None):
 
-
+        '''
         print ")))))))))))))))))))"
         print localQueries
         print rawResult
         print sourceType
         print ")))))))))))))))))))"
+        '''
         if not localQueries or not rawResult or not sourceType:
             print "requiredField is empty"
             return []
@@ -297,8 +297,10 @@ class SimilarityCache(SearchCacheABC):
                 if j >=threshold:
                     filteredList[ind] = True
 
+            '''
             print 'simmilarrrrrrrrr'
             print index[self.lda[self.tfidf_model[bowProcessedLocalQuery]]]
             print filteredList
             print 'simmilarrrrrrrrr'
+            '''
         return filteredList

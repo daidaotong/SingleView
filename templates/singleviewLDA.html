@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>singleView LDA</title>
+      <style type="text/css">
+        body{text-align:center;margin:0px auto;}
+        #container{width:100%;height:100%;margin:0px auto;}
+        #title{width:100%;height:10%;}
+        #left-subtitle{width:50%;height:20%;float:left;}
+        #right-subtitle{width:50%;height:20%;float:left;}
+        #select-box{width:100%;height:30%;float:left;}
+        #show_individual_box1{width:100%;height:10%;float:left;}
+        #show_individual_box2{width:100%;height:10%;float:left;}
+        #show-box{width:100%;height:20%;float:left;}
+        #show_right{width:100%;height:20%;float:right;}
+      </style>
+</head>
+<body>
+
+
+<!---queries on singleview table --->
+<div>
+    <h2>Initialization:</h2>
+    <form class = "singleviewform" method="POST">
+
+        {{ singleviewform.hidden_tag() }}<br>
+        {{ singleviewform.singleViewName.label }}{{ singleviewform.singleViewName() }}<br>
+        {#  {{ singleviewform.similarityLevel.label }}{{ singleviewform.similarityLevel() }}<br> #}
+        {{ singleviewform.databaseName.label }}{{ singleviewform.databaseName() }}<br>
+        {{ singleviewform.submit() }}
+
+    </form>
+</div>
+    <br><br><br>
+
+<div>
+    <h2>Register Source:</h2>
+    <form class = "registersourceForm" method="POST">
+
+        {{ registersourceForm.hidden_tag() }}<br>
+        {{ registersourceForm.sourceName.label }}{{ registersourceForm.sourceName() }}<br>
+        {{ registersourceForm.fieldName.label }}{{ registersourceForm.fieldName() }}<br>
+        {{ registersourceForm.presType.label }}{{ registersourceForm.presType() }}<br>
+        {{ registersourceForm.submit() }}
+
+    </form>
+
+
+    <br><br><br>
+
+    <form class = "initialize" method="POST">
+
+        {{ initialize.hidden_tag() }}<br>
+        {{ initialize.submit() }}
+
+    </form>
+
+</div>
+
+    <div id = "show_right">
+
+        <form class = "refreash" method="POST">
+
+            {{ refreash.hidden_tag() }}<br>
+            {{ refreash.submit() }}
+
+        </form>
+
+        <form class = "setSimilarityCache" method="POST">
+
+            {{ setSimilarityCache.hidden_tag() }}<br>
+            {{ setSimilarityCache.submit() }}
+
+        </form>
+
+    </div>
+
+<h3>SingleViewName:</h3>
+
+<!---load table button --->
+{#
+<h2>Similarity Items:</h2>
+        {% for field in similarFields %}
+            <h3>{{ field}}</h3>
+
+        {% endfor %}
+#}
+<!---single tables --->
+{# <h2>SingleView Table:{{  }}</h2>  #}
+<!---1. single table info --->
+<!---1. single table content --->
+{% for infoKey,infoValue in infoDict.items() %}
+
+    <h3> {{ infoKey }}:{{ infoValue }}</h3>
+
+
+{% endfor %}
+
+
+<br><br>
+
+<h2>Records:</h2><br>
+
+{% for prescriptionType,prescriptionValue in prescriptionTypes.items() %}
+<table border="1",size = 300>
+    <caption>{{ prescriptionType }}</caption>
+
+    {% for field in prescriptionValue %}
+        {%- if loop.index == 1 %}
+            <tr>
+                {% for prescriptionFields in field.keys() %}
+                    <th>{{ prescriptionFields }}</th>
+                {% endfor %}
+
+            </tr>
+            <tr>
+                {% for prescriptionFieldsValues in field.values() %}
+                    <td>{{ prescriptionFieldsValues }}</td>
+                {% endfor %}
+            </tr>
+        {% else %}
+            <tr>
+                {% for prescriptionFieldsValues in field.values() %}
+                    <td>{{ prescriptionFieldsValues }}</td>
+                {% endfor %}
+            </tr>
+        {% endif %}
+
+    {% endfor %}
+
+</table>
+{% endfor %}
+
+
+</body>
+</html>

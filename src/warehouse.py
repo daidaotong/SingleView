@@ -7,6 +7,7 @@ from similarities import *
 #from pykafka.common import OffsetType
 import uuid
 from copy import deepcopy
+from editdistance import *
 import time
 
 
@@ -33,7 +34,7 @@ class ComsumerThread(threading.Thread):
                     if message is not None:
                         print '+++++++++++++'
                         print message.offset
-                        print message.value
+                        #print message.value
                         print '+++++++++++++'
                         receivedMessage = json.loads(message.value)
                         self.update_q.put(receivedMessage)
@@ -91,16 +92,16 @@ class Consumer_Thread_Manager():
         print threading.active_count()
 
 
-    def __query_table(self,querycommand,returntopic,uuid):
+    def __query_table(self,querycommand,returntopic,uuid,sourceType):
 
         print "^^^^^^^^^^^^"
 
         print "Got query command"
         print querycommand
-        result = [self.singleviewDb.remove_id(i) for i in self.singleViewClient.find(json.loads(querycommand))]
-        print result
-        print returntopic
-        print uuid
+        result = self.singleviewDb.expandSearch(querycommand,fuzzyquery=True,presType=sourceType)
+        #print result
+        #print returntopic
+        #print uuid
         self.singleviewDb.send_back_queryresult(returntopic,result,uuid)
 
 
@@ -108,21 +109,17 @@ class Consumer_Thread_Manager():
 
         print "Got similarityquery command"
         print querycommand
-        print localquery
+        #print localquery
 
-        rawresult = [self.singleviewDb.remove_id(i) for i in self.singleViewClient.find(json.loads(querycommand))]
-
-        print "888888888"
-        print rawresult
-        print "888888888"
+        rawresult = self.singleviewDb.expandSearch(querycommand)
 
         rawresultcopy = deepcopy(rawresult)
         filteredList = self.singleviewDb.similarityCache.getSimilarRecordWithThreshold(localQueries = localquery,rawResult = self.singleviewDb.separate_prescription(rawresultcopy),sourceType = sourceType)
 
 
-        print "999999999"
-        print rawresult
-        print "999999999"
+        #print "999999999"
+        #print rawresult
+        #print "999999999"
         self.singleviewDb.send_back_queryresult(returntopic, [val[1] for val in zip(filteredList, rawresult) if val[0]], uuid)
 
 
@@ -137,38 +134,41 @@ class Consumer_Thread_Manager():
             try:
                 update_body = self.event_queue.get(True, 0.5)
 
-                print "fhfhfhfhff"
-                print update_body
-                print "fhfhfhfhff"
+                #print "fhfhfhfhff"
+                #print update_body
+                #print "fhfhfhfhff"
                 if update_body.has_key('type') and update_body.has_key('value'):
 
                     if update_body['type'] == 'insert':
                         print "Insert lalalallala"
-                        print json.loads(update_body['value'])
+                        #print json.loads(update_body['value'])
                         insertData = json.loads(update_body['value'])
                         if insertData:
                             self.singleViewClient.insert_many(insertData)
+                            print "Time To Finish Load:{0}".format(str(time.time()))
 
                     elif update_body['type'] == 'delete':
                         print "Got delete command"
                         print json.loads(update_body['value'])
                         self.singleViewClient.remove(json.loads(update_body['value']))
+                        print "Time To Finish Delete:{0}".format(str(time.time()))
                     elif update_body['type'] == 'update':
                         print "Got update command"
                         print json.loads(update_body['value'])
                         updateBodyQuery = json.loads(json.loads(update_body['value']))
                         updateBodyUpdate = {"$set": json.loads(json.loads(update_body['value']))}
+                        print "Time To Finish Update:{0}".format(str(time.time()))
 
                         self.singleViewClient.update(updateBodyQuery, updateBodyUpdate, upsert=False, multi=True)
                     elif update_body['type'] == 'query':
-                        if update_body['returntopic'] and update_body['uuid']:
+                        if update_body['returntopic'] and update_body['uuid'] and update_body['source']:
                             threading.Thread(target=self.__query_table,
-                                             args=( update_body['value'],update_body['returntopic'],update_body['uuid'],)).start()
+                                             args=( update_body['value'],update_body['returntopic'],update_body['uuid'],update_body['source'],)).start()
                         else:
                             raise Exception('No Returning Topic or uuid in Query')
 
                     elif update_body['type'] == 'similarityquery':
-                        if update_body['returntopic'] and update_body['uuid'] and update_body['localquery'] and update_body['source']:
+                        if update_body['returntopic'] and update_body['uuid']  and update_body['source']:
                             threading.Thread(target=self.__query_table_with_similarities,
                                              args=(update_body['value'],update_body['returntopic'],update_body['uuid'],update_body['localquery'],update_body['source'],)).start()
                         else:
@@ -217,6 +217,8 @@ class SingleViewDb(ApplicationWarehouseABC):
         super(SingleViewDb,self).__init__(name,**kwargs)
         self.Databasetype = 1
         self.presciptionTypeName = "prescription_type"
+        self.field_name = {}
+        self.registeredSources = 0
 
     @classmethod
     def register(cls, kafkaclient, mongodclient,zkclient, *args, **kwargs):
@@ -245,6 +247,47 @@ class SingleViewDb(ApplicationWarehouseABC):
         if prescriptionType not in self.prescriptionType:
             self.prescriptionType.append(prescriptionType)
 
+    def set_up_field_name(self, fieldNames, sourcedb):
+
+        if not self.field_name.has_key(sourcedb):
+            self.field_name[sourcedb] = set(fieldNames)
+        else:
+            self.field_name[sourcedb].update(fieldNames)
+
+    # set value as dict: self.levdistance[fieldname1] = set(fieldname2,fieldname3) if dist of 1-2 and 2-3 less than threshold
+    def calculate_field_levdistance(self, thresholdDist=3):
+        fieldLevDistance = {}
+        keyMapping = {}
+        for sourcedb, keys in self.field_name.items():
+
+            #fieldLevDistance[sourcedb] = {}
+
+            for key in list(keys):
+
+                #fieldLevDistance[sourcedb][key] = []
+                fieldLevDistance[key] = []
+                for sourcedb2, key2 in self.field_name.items():
+                    shortestDist = 10000
+                    shortestKey = ""
+                    if not sourcedb == sourcedb2:
+                        #map the levdistance into the list map(lambda x:)
+                        for i in key2:
+                            dist = eval(key, i)
+                            if dist < shortestDist and dist<=thresholdDist:
+                                shortestDist = dist
+                                shortestKey = i
+                        if shortestKey != "":
+                            #fieldLevDistance[sourcedb][key].append((sourcedb2,shortestKey))
+                            fieldLevDistance[key].append(shortestKey)
+                            if not keyMapping.has_key(key):
+                                keyMapping[shortestKey] = key
+        self.fieldLevDistance = fieldLevDistance
+        self.keyMapping = keyMapping
+
+
+
+
+
     def init_searchingCache(self):
         if not hasattr(self, 'similarityCache'):
             self.similarityCache = SimilarityCache.initSearchCache()
@@ -253,6 +296,7 @@ class SingleViewDb(ApplicationWarehouseABC):
         self.set_up_topics(sourceName)
         self.set_up_prescription_type(presptionType)
         self.init_searchingCache()
+        self.registeredSources+=1
 
     def get_many_with_prescription(self):
         recordPointer = self.db_repo.find()
@@ -284,6 +328,41 @@ class SingleViewDb(ApplicationWarehouseABC):
 
         return returnDict
 
+    #todo: only support first query key for now
+    def expandSearch(self,querycommand,fuzzyquery = False,presType = None):
+        querycommanddict = json.loads(querycommand)
+        print "Uuuuuuuuuu"
+        print querycommanddict
+        if fuzzyquery:
+            if len(querycommanddict) > 1:
+                print "Does not support fuzzy query for more than one keys"
+                return [self.remove_id(i) for i in self.get_mongod().find(querycommanddict)]
+            elif not querycommanddict:
+                return [self.remove_id(i) for i in self.get_mongod().find()]
+            basicResult = [self.remove_id(i) for i in self.get_mongod().find(querycommanddict)]
+
+            #print "lolololo"
+            #print basicResult
+            k,v = querycommanddict.items()[0][0],querycommanddict.items()[0][1]
+            if self.fieldLevDistance.has_key(k):
+                for key in self.fieldLevDistance[k]:
+                    #make sure mapping is  not duplicate
+                    if not key == k:
+                        querycommanddictCopy = querycommanddict.copy()
+                        newName = key
+                        del querycommanddictCopy[k]
+                        querycommanddictCopy[newName] = v
+                        print "hahahahhahahahhahahahhah"
+                        print querycommanddictCopy
+                        print [self.remove_id(i) for i in self.get_mongod().find(querycommanddictCopy)]
+                        basicResult.extend([self.remove_id(i) for i in self.get_mongod().find(querycommanddictCopy)])
+
+
+            return basicResult
+
+
+        else:
+            return [self.remove_id(i) for i in self.get_mongod().find(querycommanddict)]
 
 
     def set_searchingcache(self):
@@ -298,9 +377,9 @@ class SingleViewDb(ApplicationWarehouseABC):
 
             sendingTopic = self.get_kafka_topic(str(topic))
 
-            print "777777777"
-            print val
-            print "777777777"
+            #print "777777777"
+            #print val
+            #print "777777777"
             resultJson = json.dumps(val)
             sendingobject = sendingMessage('queryresult', resultJson).withUUID(uuidval)
             try:
@@ -311,6 +390,19 @@ class SingleViewDb(ApplicationWarehouseABC):
                 print e
 
 
+
+    #This function supposed to return all the releative Infos about the Single View
+    def return_Info(self):
+        returnDict = {}
+        if self.name:
+            returnDict["name"] = self.name
+        if self.topics:
+            returnDict["source"] = self.topics
+        if self.prescriptionType:
+            returnDict["presType"] = self.prescriptionType
+            returnDict["fieldName"] = [self.field_name[i] for i in self.prescriptionType]
+
+        return returnDict
 
 
 class SourceDb(ApplicationWarehouseABC):
@@ -348,8 +440,9 @@ class SourceDb(ApplicationWarehouseABC):
             self.delta_load(records)
 
     def insert_tag(self,singleRecord):
-        singleRecord[self.TagName] = self.presType
-        return singleRecord
+        newRecord = deepcopy(singleRecord)
+        newRecord[self.TagName] = self.presType
+        return newRecord
 
     def pre_process_for_load(self,singleRecord):
         return self.remove_id(self.insert_tag(singleRecord))
@@ -369,8 +462,30 @@ class SourceDb(ApplicationWarehouseABC):
     def set_prescription_type(self,presType):
         self.presType = presType
 
+
+    #This function supposed to return all the releative Infos about the Source System
+    def return_Info(self):
+        returnDict = {}
+        if self.name:
+            returnDict["name"] = self.name
+
+        if self.presType:
+            returnDict["presType"] = self.presType
+
+        recordIte = self.db_repo.find()
+
+        for record in recordIte:
+            if returnDict.has_key("data"):
+                returnDict["data"].append(record)
+            else:
+                returnDict["data"] = list()
+                returnDict["data"].append(record)
+
+        return returnDict
+
     def initial_load(self):
 
+        print "Time To Start Initial Load:{0}".format(str(time.time()))
         records = self.get_many()
         #print records
         records = [self.pre_process_for_load(r) for r in records]
@@ -395,6 +510,7 @@ class SourceDb(ApplicationWarehouseABC):
 
         if type == 'insert':
 
+            print "Time To Start Delta Load Insert:{0}".format(str(time.time()))
             recordSend = self.pre_process_for_load(record)
 
             recordSendJson = json.dumps([recordSend])
@@ -414,6 +530,8 @@ class SourceDb(ApplicationWarehouseABC):
 
         elif type == 'delete':
 
+            print "Time To Start Delta Load Delete:{0}".format(str(time.time()))
+
             queryWithTag = self.insert_tag(query)
 
             queryJson = json.dumps(queryWithTag)
@@ -428,12 +546,15 @@ class SourceDb(ApplicationWarehouseABC):
                 except Exception as e:
                     print 'got exception'
                     print e
-
+            print "66666666666666"
+            print query
             self.db_repo.remove(query)
 
 
 
         elif type == 'update':
+
+            print "Time To Start Delta Load update:{0}".format(str(time.time()))
 
             queryWithTag = self.insert_tag(query)
 
@@ -459,7 +580,15 @@ class SourceDb(ApplicationWarehouseABC):
     def local_query(self,query):
         return self.db_repo.find(query)
 
+    def local_query_wrapper(self,query):
+        print "Time To Start Local Query:{0}".format(str(time.time()))
+        records =  [i for i in self.db_repo.find(query)]
+        print "Time To Finish Local Query:{0}".format(str(time.time()))
+        return records
+
     def singleview_query(self,type,query,timeout):
+
+        print "Time To Start Singleview Query:{0} Type {1}".format(str(time.time()),type)
 
         sendingTopic = self.get_kafka_topic(self.name)
 
@@ -509,14 +638,15 @@ class SourceDb(ApplicationWarehouseABC):
                 # print message.offset, message.value
                 # print json.loads(message.value)
                 try:
-                    print '+++++++++++++'
-                    print message.offset
-                    print message.value
-                    print '+++++++++++++'
+                    #print '+++++++++++++'
+                    #print message.offset
+                    #print message.value
+                    #print '+++++++++++++'
                     receivedMessage = json.loads(message.value)
-                    print uuidval
+                    #print uuidval
                     if receivedMessage.has_key("uuid") and receivedMessage["uuid"] == uuidval:
                         returnval = json.loads(receivedMessage["value"])
+                        print "Time To Finish Singleview Query:{0} Type {1}".format(str(time.time()), type)
                         balanced_consumer.stop()
                         return returnval
                 except:

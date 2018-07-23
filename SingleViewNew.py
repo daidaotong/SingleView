@@ -1,6 +1,7 @@
-import six.moves
+import matplotlib.pyplot as plt
+#import six.moves
 from six.moves import urllib_parse
-print six.__file__
+#print six.__file__
 from pykafka import KafkaClient
 from flask import Flask, render_template, session, redirect, url_for
 from src.warehouse import *
@@ -31,9 +32,15 @@ sourceDB2.set_prescription_type("dental_illness")
 singleViewDB = SingleViewDb.register(name='singleviewDb',kafkaclient=kafkaClient,mongodclient=mongoClient,zkclient=zkclientAdr)
 #singleViewDB.set_up_topics(topics=['sourcedb1', 'sourcedb2'])
 singleViewDB.register_source("sourcedb1","dental_pain")
+singleViewDB.set_up_field_name(["user","account","name"],"dental_pain")
 singleViewDB.register_source("sourcedb2","dental_illness")
+singleViewDB.set_up_field_name(["user1","accountId","usname"],"dental_illness")
 singleViewDB.create_consumer_manager()
-singleViewDB.set_searchingcache()
+#must be called after the set_field_name function
+singleViewDB.calculate_field_levdistance()
+#print singleViewDB.keyMapping
+#print singleViewDB.fieldLevDistance
+#singleViewDB.set_searchingcache()
 #searchCache =
 
 
@@ -56,30 +63,47 @@ def index():
 if __name__ == '__main__':
     #app.run(debug=True)
     #sourceDB1.initial_load()
-    #sourceDB2.initial_load()
+    sourceDB2.initial_load()
+    singleViewDB.set_searchingcache()
 
+    #totalData = ParseDirectory("/Users/danieldai/Desktop/med")
+    #print totalData
+    #simvalue = SimilaritiesCauculation(dataDict=totalData)
 
+    #print "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
+    #print simvalue
+    #print "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^"
 
+    #simvalue = SimilaritiesCauculation(dataDict=totalData,useCustomTfidfModel=True,calcuMethod = "lsi",numTopics=50)
+    #print "^^^^^^^^^^^^^^^^^*********^^^^^^^^^^^^^^^^"
+    #print simvalue
+    #print "^^^^^^^^^^^^^^^**********^^^^^^^^^^^^^^^^^^"
+    #calculateErrorRate(simvalue)
+
+    #tuneNumTopics(totalData)
+
+    #plt.show()
+
+    #sourceDB1.delta_load('delete', record='', query={"aaa":"111"}, update='')
+
+    print "(((((()))))))))))))"
+    #print singleViewDB.calculate_field_levdistance()
     print ":::::::::::::::::::::::"
-    print [i for i in sourceDB1.local_query({'bb':11})]
+    #print sourceDB1.local_query_wrapper({"aaa":"111"})
     print ":::::::::::::::::::::::"
-    print sourceDB1.singleview_query("query",{'bb':11},10000)
+    #sourceDB1.singleview_query("query",{"aaa":"111"},10000)
+    print ":::::::::::::::::::::::"
+    #sourceDB1.singleview_query("similarityquery", {"aaa":"111"}, 10000)
 
-    print "5555555555555555555555555"
-    print sourceDB1.singleview_query("similarityquery", {'bb': 11}, 10000)
-    print ":::::::::::::::::::::::"
-    print "finish ************"
 
 
     #print '*****************'
     #time.sleep(5)
     #sourceDB1.initial_load()
     #a = sourceDB1.local_query({"bb":33})
-    '''
-    for i in a:
-        print "7777777777777"
-        print i
-        
+    
+    
+    
     '''
     #recordPointer = mongoClient.get_database()["singleview"].find()
     #print [record for record in recordPointer]
@@ -103,3 +127,4 @@ if __name__ == '__main__':
     #sourceDB1.delta_load('insert', record={'bb': 22}, query='', update='')
     time.sleep(100)
 
+    '''
