@@ -28,9 +28,9 @@ kafkaClient = KafkaClient(hosts="127.0.0.1:9092")
 zkclientAdr = '127.0.0.1:2181'
 
 #TODO:Lock
-#SingleviewDB = None
+SingleviewDB = None
 
-SingleviewDB = SingleViewDb.register(name='singleviewDb',kafkaclient=kafkaClient,mongodclient=mongoClient,zkclient=zkclientAdr)
+#SingleviewDB = SingleViewDb.register(name='singleviewDb',kafkaclient=kafkaClient,mongodclient=mongoClient,zkclient=zkclientAdr)
 #singleViewDB.set_up_topics(topics=['sourcedb1', 'sourcedb2'])
 #SingleviewDB.register_source("sourcedb1","dental_pain")
 #SingleviewDB.set_up_field_name(["user","account","name"],"dental_pain")
@@ -87,6 +87,7 @@ class SetSimilarityCache(FlaskForm):
 def index():
     global SingleviewDB
     global prescriptionTypes
+    returnInfo = dict()
     singleViewForm = SetSingleViewForm()
     registerSourceForm = RegisterSourceForm()
     initialize = Initialize()
@@ -137,12 +138,13 @@ def index():
         else:
             print "2222"
 
-    if not SingleviewDB:
-        return render_template('sourcePage.html.html',singleviewform = singleViewForm,registersourceForm = registerSourceForm,initialize = initialize,refreash = refreash,setSimilarityCache = setSimilarityCache, prescriptionTypes = prescriptionTypes,infoDict = dict())
-    return render_template('singleviewLDA.html', singleviewform=singleViewForm, registersourceForm=registerSourceForm, initialize = initialize,refreash = refreash,setSimilarityCache = setSimilarityCache,
-                           prescriptionTypes = prescriptionTypes,infoDict=SingleviewDB.return_Info())
 
-
+    if SingleviewDB:
+        returnInfo = SingleviewDB.return_Info()
+    #return render_template('singleviewLDA.html', singleviewform=singleViewForm, registersourceForm=registerSourceForm, initialize = initialize,refreash = refreash,setSimilarityCache = setSimilarityCache,prescriptionTypes = prescriptionTypes,infoDict=returnInfo)
+    return render_template('CoolAdmin/table.html', singleviewform=singleViewForm, registersourceForm=registerSourceForm,
+                           initialize=initialize, refreash=refreash, setSimilarityCache=setSimilarityCache,
+                           prescriptionTypes=prescriptionTypes, infoDict=returnInfo)
 
 
 if __name__ == '__main__':

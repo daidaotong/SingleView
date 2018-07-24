@@ -246,10 +246,9 @@ def index():
             print "2222"
 
     recordsInfo = get_Info()
-    return render_template('sourcePage.html',addrSourceForm = addrSourceForm,initialLoad = initialLoad,deltaLoad = deltaLoad,query = query,refreash = refreash,queryresults = queryResults,info = recordsInfo)
-
-
-
+    print request.form
+    #return render_template('sourcePage.html',addrSourceForm = addrSourceForm,initialLoad = initialLoad,deltaLoad = deltaLoad,query = query,refreash = refreash,queryresults = queryResults,info = recordsInfo)
+    return render_template('CoolAdmin/table.html', addrSourceForm=addrSourceForm, initialLoad=initialLoad,deltaLoad=deltaLoad, query=query, refreash=refreash, queryresults=queryResults,info=recordsInfo)
 
 
 if __name__ == '__main__':
