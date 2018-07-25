@@ -61,18 +61,21 @@ class SetSingleViewForm(FlaskForm):
     #similarityLevel = StringField("Similarity Level:",[validators.required()])
     databaseName = StringField("Database Name:",[validators.required(), validators.length(max=10)])
 
-    submit = SubmitField('SubmitSingleView')
+    submit = SubmitField('Submit Single View')
 
 class RegisterSourceForm(FlaskForm):
     sourceName = StringField("Source Name:",[validators.required(), validators.length(max=10)])
     fieldName = StringField("Field Name:",[validators.required()])
     presType = StringField("PresType Name:",[validators.required(), validators.length(max=10)])
+    submit = SubmitField('Submit Register Source')
+    submitInit = SubmitField('Initialize')
 
-    submit = SubmitField('SubmitRegisterSource')
-
+'''
 class Initialize(FlaskForm):
 
     submit = SubmitField('Initialize')
+    
+'''
 
 class Refreash(FlaskForm):
 
@@ -82,34 +85,54 @@ class SetSimilarityCache(FlaskForm):
 
     submit = SubmitField('SetSimilarityCache')
 
-
 @app.route('/',methods=['POST', 'GET'])
+def login():
+    global SingleviewDB
+    singleViewForm = SetSingleViewForm()
+    if singleViewForm.validate_on_submit():
+        print "eeee"
+        print request.form
+        SingleviewDB = SingleViewDb.register(name=request.form['singleViewName'], kafkaclient=kafkaClient,
+                                             mongodclient=mongoClient,
+                                             zkclient=zkclientAdr)
+        return redirect(url_for('addSource'))
+    print "fffff"
+    print request.form
+    return render_template('CoolAdmin/login.html',singleviewform=singleViewForm)
+
+
+@app.route('/add',methods=['POST', 'GET'])
+def addSource():
+    global SingleviewDB
+    registerSourceForm = RegisterSourceForm()
+    if registerSourceForm.validate_on_submit():
+
+        if registerSourceForm.submit.data:
+            fieldNames = map(str, request.form["fieldName"].split(":"))
+            #print fieldNames
+            SingleviewDB.register_source(str(request.form["sourceName"]), str(request.form["presType"]))
+            SingleviewDB.set_up_field_name(fieldNames, str(request.form["presType"]))
+
+        elif registerSourceForm.submitInit.data:
+            SingleviewDB.create_consumer_manager()
+            SingleviewDB.calculate_field_levdistance()
+            return redirect(url_for('index'))
+
+    return render_template('CoolAdmin/add.html',registersourceForm=registerSourceForm)
+
+
+
+
+@app.route('/main',methods=['POST', 'GET'])
 def index():
     global SingleviewDB
     global prescriptionTypes
     returnInfo = dict()
-    singleViewForm = SetSingleViewForm()
-    registerSourceForm = RegisterSourceForm()
-    initialize = Initialize()
     refreash = Refreash()
     setSimilarityCache = SetSimilarityCache()
     if request.method == 'POST':
-        print request.form
-        if request.form["submit"] == "SubmitSingleView":
 
-
-            SingleviewDB = SingleViewDb.register(name=request.form['singleViewName'], kafkaclient=kafkaClient, mongodclient=mongoClient,
-                                                 zkclient=zkclientAdr)
-
-
-        elif request.form["submit"] == "SubmitRegisterSource":
-
-            fieldNames = map(str,request.form["fieldName"].split(":"))
-            print fieldNames
-            SingleviewDB.register_source(str(request.form["sourceName"]), str(request.form["presType"]))
-            SingleviewDB.set_up_field_name(fieldNames, str(request.form["presType"]))
-
-        elif request.form["submit"] == "Initialize":
+        if request.form["submit"] == "Initialize":
 
             SingleviewDB.create_consumer_manager()
             SingleviewDB.calculate_field_levdistance()
@@ -142,8 +165,8 @@ def index():
     if SingleviewDB:
         returnInfo = SingleviewDB.return_Info()
     #return render_template('singleviewLDA.html', singleviewform=singleViewForm, registersourceForm=registerSourceForm, initialize = initialize,refreash = refreash,setSimilarityCache = setSimilarityCache,prescriptionTypes = prescriptionTypes,infoDict=returnInfo)
-    return render_template('CoolAdmin/table.html', singleviewform=singleViewForm, registersourceForm=registerSourceForm,
-                           initialize=initialize, refreash=refreash, setSimilarityCache=setSimilarityCache,
+    return render_template('CoolAdmin/table.html',
+                        refreash=refreash, setSimilarityCache=setSimilarityCache,
                            prescriptionTypes=prescriptionTypes, infoDict=returnInfo)
 
 
