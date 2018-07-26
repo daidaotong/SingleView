@@ -230,6 +230,7 @@ class SingleViewDb(ApplicationWarehouseABC):
         s.init_searchingCache()
         s.prescriptionType = []
         s.topics = []
+        s.sourcePresMap = {}
         #s.get_kafka_topic()
         #s.get_mongod()
 
@@ -285,16 +286,38 @@ class SingleViewDb(ApplicationWarehouseABC):
         self.keyMapping = keyMapping
 
 
+    def insert_tag(self,presType,singleRecord):
+        newRecord = deepcopy(singleRecord)
+        newRecord[self.presciptionTypeName] = presType
+        return newRecord
 
+    def pre_process_for_load(self,singleRecord,prestype):
+        return self.remove_id(self.insert_tag(prestype,singleRecord))
+
+    def initial_load_all(self):
+        allRecords = []
+        sourcedbNames = self.topics
+        for sourcedbName in sourcedbNames:
+            sourceRecords = self.mongod_client.get_database()[sourcedbName].find()
+
+            allRecords.extend([self.pre_process_for_load(r,self.sourcePresMap[sourcedbName]) for r in sourceRecords])
+
+        self.get_mongod().insert_many(allRecords)
 
 
     def init_searchingCache(self):
         if not hasattr(self, 'similarityCache'):
             self.similarityCache = SimilarityCache.initSearchCache()
 
+
+    def set_up_source_prescription_mapping(self,source,presType):
+        if not self.sourcePresMap.has_key(source):
+            self.sourcePresMap[source] = presType
+
     def register_source(self,sourceName, presptionType):
         self.set_up_topics(sourceName)
         self.set_up_prescription_type(presptionType)
+        self.set_up_source_prescription_mapping(sourceName,presptionType)
         self.init_searchingCache()
         self.registeredSources+=1
 

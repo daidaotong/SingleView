@@ -3,7 +3,7 @@ from six.moves import urllib_parse
 #print six.__file__
 #from src.evaluation import *
 from pykafka import KafkaClient
-from flask import Flask, render_template, session, redirect, url_for,request
+from flask import Flask, render_template, session, redirect, url_for,request,abort
 from src.warehouse import *
 from src.ehrParser import *
 from src.similarities import *
@@ -109,144 +109,143 @@ def login():
             newSource.set_prescription_type(str(request.form["presType"]))
 
             SourceDBs[str(request.form["sourceName"])] = newSource
-
-            return redirect(url_for('index'))
+            session['sourcename'] = str(request.form["sourceName"])
+            return redirect(url_for('table'))
     return render_template('CoolAdmin/clientlogin.html',addrSourceForm=addrSourceForm)
 
 @app.route('/delta',methods=['POST', 'GET'])
 def delta():
+    if not session.get('sourcename',None):
+        abort(404)
     deltaForm = Deltaload()
+
+    sourcedbName = session["sourcename"]
+
+    if SourceDBs.has_key(sourcedbName):
+
+        if deltaForm.submit.data:
+
+            if str(request.form["deltaType"]) == "0":
+
+                try:
+
+                    insertFields = json.loads(str(request.form["insertField"]))
+
+                    SourceDBs[sourcedbName].delta_load('insert', record=insertFields, query='',
+                                                                          update='')
+
+                except Exception as e:
+                    print 'Invalid Input for delta insert'
+                    print e
+
+
+            elif str(request.form["deltaType"]) == "1":
+
+                try:
+
+                    queryFields = json.loads(str(request.form["queryField"]))
+
+                    SourceDBs[sourcedbName].delta_load('delete', record='', query=queryFields,
+                                                                          update='')
+
+                except Exception as e:
+                    print 'Invalid Input for delta delete'
+                    print e
+
+
+
+            elif str(request.form["deltaType"]) == "2":
+
+                try:
+
+                    queryFields = json.loads(str(request.form["queryField"]))
+                    updateFields = json.loads(str(request.form["updateField"]))
+
+                    SourceDBs[sourcedbName].delta_load('update', record='', query=queryFields,
+                                                                          update=updateFields)
+
+                except Exception as e:
+                    print 'Invalid Input for delta insert'
+                    print e
+
+
+            else:
+                print "query type not recognized"
+
     return render_template('CoolAdmin/clientDelta.html',deltaForm = deltaForm)
 
 
 @app.route('/table',methods=['POST', 'GET'])
 def table():
-    query = Query()
-    return render_template('CoolAdmin/tableclient.html', queryform=query)
-
-
-@app.route('/main',methods=['POST', 'GET'])
-def index():
-    global SourceDBs
-    #global prescriptionTypes
     queryResults = []
-    addrSourceForm = AddSourceForm()
-    initialLoad = InitialLoad()
-    deltaLoad = Deltaload()
+    if not session.get('sourcename',None):
+        abort(404)
+
     query = Query()
-    refreash = Refreash()
-    if request.method == 'POST':
-        print request.form
 
-        if request.form["submit"] == "InitialLoad":
+    sourcedbName = session["sourcename"]
 
-            if SourceDBs.has_key(str(request.form["sourceName"])):
-                SourceDBs[str(request.form["sourceName"])].initial_load()
+    if SourceDBs.has_key(sourcedbName):
 
-            else:
-                print "Source not recognized"
+        if query.submit.data:
 
+            if str(request.form["queryType"]) == "1":
 
+                try:
 
-        elif str(request.form["submit"]) == "Deltaload":
+                    queryFields = json.loads(str(request.form["queryField"]))
 
-            if SourceDBs.has_key(str(request.form["sourceName"])):
+                    queryResults.extend(
+                        SourceDBs[sourcedbName].singleview_query("query", queryFields, 10000))
 
-                if str(request.form["deltaType"]) == "delete":
-
-                    try:
-
-                        queryFields = json.loads(str(request.form["queryField"]))
-
-                        SourceDBs[str(request.form["sourceName"])].delta_load('delete', record='', query=queryFields,
-                                                                              update='')
-
-                    except Exception as e:
-                        print 'Invalid Input for delta delete'
-                        print e
+                except Exception as e:
+                    print 'Invalid Input for query'
+                    print e
 
 
-                elif str(request.form["deltaType"]) == "insert":
+            elif str(request.form["queryType"]) == "2":
 
-                    try:
+                try:
 
-                        insertFields = json.loads(str(request.form["insertField"]))
+                    queryFields = json.loads(str(request.form["queryField"]))
 
-                        SourceDBs[str(request.form["sourceName"])].delta_load('insert', record=insertFields, query='',
-                                                                              update='')
+                    queryResults.extend(
+                        SourceDBs[sourcedbName].singleview_query("similarityquery", queryFields, 10000))
 
-                    except Exception as e:
-                        print 'Invalid Input for delta insert'
-                        print e
+                except Exception as e:
+                    print 'Invalid Input for similarity query'
+                    print e
 
-                elif str(request.form["deltaType"]) == "update":
 
-                    try:
+            elif str(request.form["queryType"]) == "0":
+                print "hhhshdhdd"
 
-                        queryFields = json.loads(str(request.form["queryField"]))
-                        updateFields = json.loads(str(request.form["updateField"]))
+                try:
 
-                        SourceDBs[str(request.form["sourceName"])].delta_load('update', record='', query=queryFields,
-                                                                              update=updateFields)
+                    queryFields = json.loads(str(request.form["queryField"]))
 
-                    except Exception as e:
-                        print 'Invalid Input for delta insert'
-                        print e
+                    queryResults.extend(SourceDBs[sourcedbName].local_query_wrapper(queryFields))
 
-                else:
-                    print "delta type not recognized"
+                except Exception as e:
+                    print 'Invalid Input for local query'
+                    print e
 
             else:
-                print "Source not recognized"
+                print "query type not recognized"
 
-
-        elif request.form["submit"] == "Query":
-
-            if SourceDBs.has_key(str(request.form["sourceName"])):
-
-                if str(request.form["queryType"]) == "query":
-
-                    try:
-
-                        queryFields = json.loads(str(request.form["queryField"]))
-
-                        queryResults.extend(SourceDBs[str(request.form["sourceName"])].singleview_query("query",queryFields,10000))
-
-                    except Exception as e:
-                        print 'Invalid Input for query'
-                        print e
-
-
-                elif str(request.form["queryType"]) == "similarityquery":
-
-                    try:
-
-                        queryFields = json.loads(str(request.form["queryField"]))
-
-                        queryResults.extend(SourceDBs[str(request.form["sourceName"])].singleview_query("similarityquery", queryFields, 10000))
-
-                    except Exception as e:
-                        print 'Invalid Input for similarity query'
-                        print e
-
-
-                elif str(request.form["queryType"]) == "localquery":
-
-                    try:
-
-                        queryFields = json.loads(str(request.form["queryField"]))
-
-                        queryResults.extend(SourceDBs[str(request.form["sourceName"])].local_query_wrapper(queryFields))
-
-                    except Exception as e:
-                        print 'Invalid Input for local query'
-                        print e
-
-                else:
-                    print "query type not recognized"
-
+    print queryResults
+    print SourceDBs[sourcedbName]
+    prescriptionTypes = {}
+    if queryResults:
+        for record in queryResults:
+            if prescriptionTypes.has_key(record.get(SourceDBs[sourcedbName].TagName)):
+                prescriptionTypes[record.get(SourceDBs[sourcedbName].TagName)].append(record)
             else:
-                print "Source not recognized"
+                prescriptionTypes[record.get(SourceDBs[sourcedbName].TagName)] = list()
+                prescriptionTypes[record.get(SourceDBs[sourcedbName].TagName)].append(record)
+
+
+    return render_template('CoolAdmin/tableclient.html', queryform=query,queryresults = queryResults,prescriptionTypes = prescriptionTypes)
 
 
     recordsInfo = get_Info()

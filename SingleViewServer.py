@@ -93,6 +93,7 @@ def addSource():
         elif registerSourceForm.submitInit.data:
             SingleviewDB.create_consumer_manager()
             SingleviewDB.calculate_field_levdistance()
+            SingleviewDB.initial_load_all()
             return redirect(url_for('index'))
 
     return render_template('CoolAdmin/add.html',registersourceForm=registerSourceForm)
