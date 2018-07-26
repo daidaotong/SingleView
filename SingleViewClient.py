@@ -11,7 +11,7 @@ import pymongo
 import time
 from datetime import datetime
 from flask_wtf import FlaskForm
-from wtforms import StringField,SubmitField,PasswordField,validators
+from wtforms import StringField,SubmitField,SelectField,validators
 
 
 
@@ -52,8 +52,8 @@ def test():
     return 'Hello World!'
 
 class AddSourceForm(FlaskForm):
-    sourceName = StringField("Source Name:",[validators.required(), validators.length(max=10)])
-    presType = StringField("PresType Name:",[validators.required(), validators.length(max=10)])
+    sourceName = StringField("Source Name:",[validators.required(), validators.length(max=20)])
+    presType = StringField("PresType Name:",[validators.required()])
 
     submit = SubmitField('SubmitCreateSource')
 
@@ -69,24 +69,19 @@ class InitialLoad(FlaskForm):
 
 class Deltaload(FlaskForm):
 
-    sourceName = StringField("Source Name:",[validators.required(), validators.length(max=10)])
-    presType = StringField("PresType Name:",[validators.required(), validators.length(max=10)])
 
     insertField = StringField("Insert Field:")
     queryField = StringField("Query Field:")
     updateField = StringField("Update Field:")
 
-    deltaType = StringField("Delta Type :", [validators.required(), validators.length(max=10)])
+    deltaType = SelectField("Delta Type :", choices=[("0", "Insert"),("1", "Delete"),("2", "Query")], coerce=int)
 
-    submit = SubmitField('Deltaload')
+    submit = SubmitField('Delta Change')
 
 class Query(FlaskForm):
 
-    sourceName = StringField("Source Name:",[validators.required(), validators.length(max=10)])
-    presType = StringField("PresType Name:",[validators.required(), validators.length(max=10)])
-
     queryField = StringField("Query Field:", [validators.required(), validators.length(max=10)])
-    queryType = StringField("Query Type:", [validators.required(), validators.length(max=10)])
+    queryType = SelectField("Query Type :", choices=[("0", "Local Query"), ("1", "Singleview Query"), ("2", "Singleview Similarity Query")], coerce=int)
     submit = SubmitField('Query')
 
 
@@ -104,6 +99,33 @@ def get_Info():
     return InfoList
 
 @app.route('/',methods=['POST', 'GET'])
+def login():
+    global SourceDBs
+    addrSourceForm = AddSourceForm()
+    if addrSourceForm.validate_on_submit() and addrSourceForm.submit.data:
+        if not SourceDBs.has_key(str(request.form["sourceName"])):
+            newSource = SourceDb.register(name=str(request.form["sourceName"]), kafkaclient=kafkaClient,
+                                          mongodclient=mongoClient, zkclient=zkclientAdr)
+            newSource.set_prescription_type(str(request.form["presType"]))
+
+            SourceDBs[str(request.form["sourceName"])] = newSource
+
+            return redirect(url_for('index'))
+    return render_template('CoolAdmin/clientlogin.html',addrSourceForm=addrSourceForm)
+
+@app.route('/delta',methods=['POST', 'GET'])
+def delta():
+    deltaForm = Deltaload()
+    return render_template('CoolAdmin/clientDelta.html',deltaForm = deltaForm)
+
+
+@app.route('/table',methods=['POST', 'GET'])
+def table():
+    query = Query()
+    return render_template('CoolAdmin/tableclient.html', queryform=query)
+
+
+@app.route('/main',methods=['POST', 'GET'])
 def index():
     global SourceDBs
     #global prescriptionTypes
@@ -115,16 +137,8 @@ def index():
     refreash = Refreash()
     if request.method == 'POST':
         print request.form
-        if request.form["submit"] == "SubmitCreateSource":
 
-            if not SourceDBs.has_key(str(request.form["sourceName"])):
-                newSource =  SourceDb.register(name=str(request.form["sourceName"]),kafkaclient=kafkaClient,mongodclient=mongoClient,zkclient=zkclientAdr)
-                newSource.set_prescription_type(str(request.form["presType"]))
-
-                SourceDBs[str(request.form["sourceName"])] = newSource
-
-
-        elif request.form["submit"] == "InitialLoad":
+        if request.form["submit"] == "InitialLoad":
 
             if SourceDBs.has_key(str(request.form["sourceName"])):
                 SourceDBs[str(request.form["sourceName"])].initial_load()
@@ -235,20 +249,10 @@ def index():
                 print "Source not recognized"
 
 
-
-
-
-    else:
-
-        if not SourceDBs:
-            print "1111"
-        else:
-            print "2222"
-
     recordsInfo = get_Info()
     print request.form
     #return render_template('sourcePage.html',addrSourceForm = addrSourceForm,initialLoad = initialLoad,deltaLoad = deltaLoad,query = query,refreash = refreash,queryresults = queryResults,info = recordsInfo)
-    return render_template('CoolAdmin/table.html', addrSourceForm=addrSourceForm, initialLoad=initialLoad,deltaLoad=deltaLoad, query=query, refreash=refreash, queryresults=queryResults,info=recordsInfo)
+    return render_template('CoolAdmin/clientDelta.html', addrSourceForm=addrSourceForm, initialLoad=initialLoad,deltaLoad=deltaLoad, query=query, refreash=refreash, queryresults=queryResults,info=recordsInfo)
 
 
 if __name__ == '__main__':

@@ -11,7 +11,7 @@ import pymongo
 import time
 from datetime import datetime
 from flask_wtf import FlaskForm
-from wtforms import StringField,SubmitField,PasswordField,validators
+from wtforms import StringField,SubmitField,SelectField,validators
 
 
 
@@ -37,18 +37,6 @@ SingleviewDB = None
 
 
 prescriptionTypes = {}
-'''
-singleViewDB.register_source("sourcedb2","dental_illness")
-singleViewDB.set_up_field_name(["user1","accountId","usname"],"dental_illness")
-singleViewDB.create_consumer_manager()
-#must be called after the set_field_name function
-singleViewDB.calculate_field_levdistance()
-#print singleViewDB.keyMapping
-#print singleViewDB.fieldLevDistance
-#singleViewDB.set_searchingcache()
-#searchCache =
-
-'''
 
 @app.route('/test')
 def test():
@@ -57,46 +45,35 @@ def test():
 
 
 class SetSingleViewForm(FlaskForm):
-    singleViewName = StringField("Single View Name:",[validators.required(), validators.length(max=10)])
+    singleViewName = StringField("Single View Name:",[validators.required(), validators.length(max=20)])
     #similarityLevel = StringField("Similarity Level:",[validators.required()])
-    databaseName = StringField("Database Name:",[validators.required(), validators.length(max=10)])
+    databaseName = StringField("Database Name:",[validators.required(), validators.length(max=20)])
 
     submit = SubmitField('Submit Single View')
 
 class RegisterSourceForm(FlaskForm):
-    sourceName = StringField("Source Name:",[validators.required(), validators.length(max=10)])
+    sourceName = StringField("Source Name:",[validators.required(), validators.length(max=20)])
     fieldName = StringField("Field Name:",[validators.required()])
-    presType = StringField("PresType Name:",[validators.required(), validators.length(max=10)])
+    presType = StringField("PresType Name:",[validators.required(), validators.length(max=30)])
     submit = SubmitField('Submit Register Source')
     submitInit = SubmitField('Initialize')
 
-'''
-class Initialize(FlaskForm):
+class SelectSource(FlaskForm):
 
-    submit = SubmitField('Initialize')
-    
-'''
-
-class Refreash(FlaskForm):
-
-    submit = SubmitField('Refreash')
-
-class SetSimilarityCache(FlaskForm):
-
-    submit = SubmitField('SetSimilarityCache')
+    selectLg = SelectField('Sources', choices=[("0","Please select")], coerce=int)
+    submit = SubmitField('Submit')
+    submitSetCache = SubmitField('SetSimilarityCache')
 
 @app.route('/',methods=['POST', 'GET'])
 def login():
     global SingleviewDB
     singleViewForm = SetSingleViewForm()
     if singleViewForm.validate_on_submit():
-        print "eeee"
         print request.form
-        SingleviewDB = SingleViewDb.register(name=request.form['singleViewName'], kafkaclient=kafkaClient,
+        SingleviewDB = SingleViewDb.register(name=str(request.form['singleViewName']), kafkaclient=kafkaClient,
                                              mongodclient=mongoClient,
                                              zkclient=zkclientAdr)
         return redirect(url_for('addSource'))
-    print "fffff"
     print request.form
     return render_template('CoolAdmin/login.html',singleviewform=singleViewForm)
 
@@ -128,46 +105,50 @@ def index():
     global SingleviewDB
     global prescriptionTypes
     returnInfo = dict()
-    refreash = Refreash()
-    setSimilarityCache = SetSimilarityCache()
-    if request.method == 'POST':
-
-        if request.form["submit"] == "Initialize":
-
-            SingleviewDB.create_consumer_manager()
-            SingleviewDB.calculate_field_levdistance()
-
-        elif request.form["submit"] == "Refreash":
-            recordIte  = SingleviewDB.db_repo.find()
-            prescriptionTypes = {}
-            for record in recordIte:
-                if prescriptionTypes.has_key(record[SingleviewDB.presciptionTypeName]):
-                    prescriptionTypes[record[SingleviewDB.presciptionTypeName]].append(record)
-                else:
-                    prescriptionTypes[record[SingleviewDB.presciptionTypeName]] = list()
-                    prescriptionTypes[record[SingleviewDB.presciptionTypeName]].append(record)
-
-        elif request.form["submit"] == "SetSimilarityCache":
-
-            SingleviewDB.set_searchingcache()
-
-
-
-
-    else:
-
-        if not SingleviewDB:
-            print "1111"
-        else:
-            print "2222"
-
+    selectPresType = ""
+    selectSource = SelectSource()
 
     if SingleviewDB:
         returnInfo = SingleviewDB.return_Info()
-    #return render_template('singleviewLDA.html', singleviewform=singleViewForm, registersourceForm=registerSourceForm, initialize = initialize,refreash = refreash,setSimilarityCache = setSimilarityCache,prescriptionTypes = prescriptionTypes,infoDict=returnInfo)
-    return render_template('CoolAdmin/table.html',
-                        refreash=refreash, setSimilarityCache=setSimilarityCache,
-                           prescriptionTypes=prescriptionTypes, infoDict=returnInfo)
+
+    if returnInfo.has_key("presType"):
+        for index,infoValue in enumerate(returnInfo.get("presType")):
+            selectSource.selectLg.choices.append((str(index+1),infoValue))
+
+    recordIte = SingleviewDB.db_repo.find()
+    prescriptionTypes = {}
+    for record in recordIte:
+        if prescriptionTypes.has_key(record[SingleviewDB.presciptionTypeName]):
+            prescriptionTypes[record[SingleviewDB.presciptionTypeName]].append(record)
+        else:
+            prescriptionTypes[record[SingleviewDB.presciptionTypeName]] = list()
+            prescriptionTypes[record[SingleviewDB.presciptionTypeName]].append(record)
+
+    if selectSource.submit:
+
+        if selectSource.submit.data:
+            if int(request.form["selectLg"]) >= 1:
+                selectPresType = returnInfo.get("presType")[int(request.form["selectLg"])-1]
+
+        elif selectSource.submitSetCache.data:
+            SingleviewDB.set_searchingcache()
+
+
+    print "***********"
+    print selectPresType
+    print prescriptionTypes
+    print prescriptionTypes.get(selectPresType)
+    print "***********"
+
+
+    presData = dict()
+    if prescriptionTypes.get(selectPresType):
+        presData = prescriptionTypes.get(selectPresType)
+    print "***************&"
+    print prescriptionTypes
+    print returnInfo
+    print "***************&"
+    return render_template('CoolAdmin/table.html',selectSource = selectSource,prescriptionTypes=presData, infoDict=returnInfo)
 
 
 if __name__ == '__main__':
