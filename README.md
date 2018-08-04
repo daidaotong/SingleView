@@ -1,4 +1,4 @@
-# Project Title
+# Single View for EHR
 
 A Simulated Program for Solving EHR System Interoperability Issue by Using MongoDB Single View and LDA Modelling
 
@@ -15,7 +15,9 @@ These instructions will get you a copy of the project up and running on your loc
 ```
 explanation for step 4:
 
-if you have sourcedb1 and sourcedb2 as your source EHR system table, and singleview as single view table, then you need to create sourcedb1,sorucedb2,sourcedb1query,sourcedb2,sourcedb2query these four topics. you can simply do creqating topic by using the shell command:
+if you have sourcedb1 and sourcedb2 as your source EHR system table, and singleview as single view table,
+then you need to create sourcedb1,sorucedb2,sourcedb1query,sourcedb2,sourcedb2query these four topics.
+ you can simply do creqating topic by using the shell command:
 bin/kafka-topics.sh --create --zookeeper localhost:2181 --replication-factor 1 --partitions 1 --topic topicname by using the pre-written kafka script
 ```
 5. preparing the source data ang save it in the source database
@@ -25,13 +27,31 @@ install third-party packages of python 2.7: pykafka,pymongo,gensim,flask,flask_w
 install google chrome if needed
 
 ## Running
-Server Starts:
-Start the Single View Server by using 'python SingleViewServer.py' command
+###Server Starts:
+Start the Single View Server by using 'python SingleViewServer.py' command, then open a browser for address http://127.0.0.1:5001
+In the Web UI page type name for single view table,then register the source for single view for pulling the data from the sources(The source name
+must be exactly the same as the sourcedb table,then you also need to input the source perscription type).
+After the above steps,you can get into the main page and look at the single view with different prescription schemas.
+
+###Client Starts:
+Start the Single View Client by using 'python SingleViewClient.py' command, then open a browser for address http://127.0.0.1:5002
+In the Web UI page type name for source table,(The source name must be exactly the same as the sourcedb table,then you also need to input the source perscription type).
+
+###Single View and Source Interaction:
+The Source and Single View are interacted by using Apache Kafka Event Queues for source querying and changes in sources floated into the Single View.
+1. Delta Load:
+We can update the source table in http://127.0.0.1:5002/delta page, at the same time the changes will be loaded into the single view table, the following process is delta load.
+We can verify
+
+2. Single View Querying
+the following steps illustrates how to do the Single View Querying:
+1. go to the main page of client after login: http://127.0.0.1:5002/table
+2. Select Query type:
+(1) Local Query: The query will be performed locally
+(2) Single View Query: The query will be floated into Single View table but no similarity calculation will be performed
+(3) Single View Similarity Query: The query will be floated into Single View table and similarity filtering will be made to filter the records, the similarity level can be set through the UI
 
 
-
-Client Starts:
-Start the Single View Client by using 'python SingleViewClient.py' command
 ### Break down into end to end tests
 
 Explain what these tests test and why
@@ -40,41 +60,17 @@ Explain what these tests test and why
 Give an example
 ```
 
-### And coding style tests
-
-Explain what these tests test and why
-
-```
-Give an example
-```
-
-## Deployment
-
-Add additional notes about how to deploy this on a live system
-
-## Built With
-
-* [Dropwizard](http://www.dropwizard.io/1.0.2/docs/) - The web framework used
-* [Maven](https://maven.apache.org/) - Dependency Management
-* [ROME](https://rometools.github.io/rome/) - Used to generate RSS Feeds
-
-## Contributing
-
-Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
-
 ## Versioning
 
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags). 
+1.0.1
 
 ## Authors
 
-* **Billie Thompson** - *Initial work* - [PurpleBooth](https://github.com/PurpleBooth)
-
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
+* **Daotong Dai**
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License 
 
 ## Acknowledgments
 
