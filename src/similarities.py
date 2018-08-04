@@ -78,14 +78,6 @@ class newTfidfModel(models.TfidfModel):
                                         for tup2 in self.wholeCorpus:
                                                 for temid2,_ in tup2[1]:
                                                         if temid2 == temid:
-                                                                '''
-                                                                print "match"
-                                                                print temid2
-                                                                print self.presTypeMat[self.presType2Id[presType]][self.presType2Id[tup2[0]]]
-                                                                print maxDist
-                                                                print float(self.presTypeMat[self.presType2Id[presType]][self.presType2Id[tup2[0]]])/float(maxDist)
-                                                                print "77777"
-                                                                '''
                                                                 dfval+=float(self.presTypeMat[self.presType2Id[presType]][self.presType2Id[tup2[0]]])/float(maxDist)
                                                                 break
                                         idfs = df2idf(dfval + 1, len(self.wholeCorpus) + 1)
@@ -114,11 +106,6 @@ class newTfidfModel(models.TfidfModel):
                                         if not presType1 == presType2 and v2.has_key(temid):
                                                 dfval += float(self.presTypeMat[self.presType2Id[presType1]][self.presType2Id[presType2]])*v2[temid] / float(maxDist)
                                 idfs = df2idf(dfval + 1, len(self.wholeCorpus) + 1)
-                                if presType1 == 'dental_painful' and temid == 10:
-                                        print ">>>>>>>>>>>>>>"
-                                        print idfs
-                                        print dfval
-                                        print ">>>>>>>>>>>>>>"
                                 weightedIdfDict[presType1][temid] = idfs
 
 
@@ -139,12 +126,6 @@ class newTfidfModel(models.TfidfModel):
                         self.eps = eps
                         # if the input vector is in fact a corpus, return a transformed corpus as a result
                         #not support corpus for now
-                        '''
-                        is_corpus, bow = gensim.utils.is_corpus(bow)
-                        if is_corpus:
-                                return self._apply(bow)
-
-                        '''
                         # unknown (new) terms will be given zero weight (NOT infinity/huge weight,
                         # as strict application of the IDF formula would dictate)
 
@@ -156,8 +137,6 @@ class newTfidfModel(models.TfidfModel):
 
                         tf_array = self.wlocal(np.array(tf_array))
 
-                        #print presType
-                        #print self.idfMat.get(presType).get(termid,0.0)
                         vector = [
                                 (termid, tf * self.idfMat.get(presType).get(termid))
                                 for termid, tf in zip(termid_array, tf_array) if
@@ -174,11 +153,6 @@ class newTfidfModel(models.TfidfModel):
                         return vector
 
                 else:
-                        '''
-                        is_corpus, bow = utils.is_corpus(bow)
-                        if is_corpus:
-                                return self._apply(bow)
-                        '''
                         if isinstance(presTypeWithbow[1],list):
                                 return super(newTfidfModel, self).__getitem__(presTypeWithbow[1], eps=1e-12)
                         else:
@@ -252,10 +226,6 @@ class SimilarityCache(SearchCacheABC):
         #TODO:calculate ans save the tfidf model
         self.tfidf_model = newTfidfModel(bow_corpus)
 
-        print "hahahhahhahahahhaha"
-        print bow_corpus
-        print self.tfidf_model[bow_corpus[0]]
-
         #TODO: calculate and save the lda model
         self.lda = models.LdaModel(self.tfidf_model[bow_corpus], id2word=self.dictionary, num_topics=numTopics)
 
@@ -265,13 +235,6 @@ class SimilarityCache(SearchCacheABC):
     #return the
     def getSimilarRecordWithThreshold(self,threshold = 0.75,localQueries = None,rawResult = None,sourceType = None):
 
-        '''
-        print ")))))))))))))))))))"
-        print localQueries
-        print rawResult
-        print sourceType
-        print ")))))))))))))))))))"
-        '''
         if not localQueries or not rawResult or not sourceType:
             print "requiredField is empty"
             return []
@@ -297,10 +260,4 @@ class SimilarityCache(SearchCacheABC):
                 if j >=threshold:
                     filteredList[ind] = True
 
-            '''
-            print 'simmilarrrrrrrrr'
-            print index[self.lda[self.tfidf_model[bowProcessedLocalQuery]]]
-            print filteredList
-            print 'simmilarrrrrrrrr'
-            '''
         return filteredList

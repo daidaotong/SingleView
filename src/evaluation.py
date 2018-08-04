@@ -16,9 +16,6 @@ def mapLabel(label):
         raise ValueError("Wrong label type!")
 
 def recoverLabel(num):
-    print "Uuuuuuuuuuuuuuuuuuuuu"
-    print num
-    print "Uuuuuuuuuuuuuuuuuuuuu"
     if num > 0:
         return 'Positive'
     else:
@@ -30,28 +27,21 @@ def gaussian(dist, a=1, b=0, c=0.3):
 def weightedKNN(similarities,numNeighbors = 5):
 
     labelWeight = 0
-    numRecords = 0
     totalWeight = 0
 
     if len(similarities) > numNeighbors:
-        numRecords = numNeighbors
         for value in similarities[1:numNeighbors+1]:
             #get the value of the tuple
             label = value[0].split('+', 1)[0]
-            #totalWeight = totalWeight + 1/(value[1]+1)
-            #labelWeight = labelWeight+ mapLabel(label)/(value[1]+1)
 
             totalWeight = totalWeight + gaussian(1-value[1])
             labelWeight = labelWeight+ mapLabel(label)*gaussian(1-value[1])
 
 
     elif len(similarities) > 1:
-        numRecords = len(similarities)
         for value in similarities[1:]:
             # get the value of the tuple
             label = value[0].split('+', 1)[0]
-            #totalWeight = totalWeight + 1 / (value[1] + 1)
-            #labelWeight = labelWeight + mapLabel(label)/(value[1]+1)
             totalWeight = totalWeight + gaussian(1-value[1])
             labelWeight = labelWeight+ mapLabel(label)*gaussian(1-value[1])
 
@@ -118,12 +108,6 @@ def tuneNumTopics(dataDict=dict(),numTopicsLower = 10,numTopicsUpper = 49,size =
     for i in range(numTopicsLower,numTopicsUpper+1,size):
         newldaModel = gensim.models.LdaModel(newtfidf_model[bow_corpus], id2word=dictionary, num_topics=i)
         tradldaModel = gensim.models.LdaModel(tradtfidf_model[bow_corpus], id2word=dictionary, num_topics=i)
-        #print 2**(-ldaModel.log_perplexity(tfidf_model[testSet]))
-        #prep = perplexity(ldaModel, tfidf_model[testSet], dictionary, len(dictionary.keys()), i)
-        #calculate perplexity
-        #corpus_words = sum(cnt for document in tfidf_model[testSet] for _, cnt in document)
-        #perwordbound = ldaModel.bound(tfidf_model[testSet]) / corpus_words
-        #print np.exp2(-perwordbound)
         cmc_v_new = gensim.models.CoherenceModel(model=newldaModel, texts=[i[1] for i in corpus], dictionary=dictionary, coherence='c_v')
         val1 = cmc_v_new.get_coherence()
         print val1
@@ -165,17 +149,6 @@ def tuneNumTopics(dataDict=dict(),numTopicsLower = 10,numTopicsUpper = 49,size =
     plt.ylabel("U_Mass coherence score")
     plt.legend(["LDA with new TF-IDF Model","LDA with traditional TF-IDF Model"],loc='best')
     f2.savefig('fig2.png')  # save the figure to file
-
-        #print prep
-
-        #return cv_coherencevalue,umass_coherencevalue
-
-
-
-
-
-
-
 
 
     '''
@@ -335,8 +308,7 @@ def SimilaritiesCauculation(dataDict=dict(), useCustomTfidfModel=False,calcuMeth
 
     for key, value in resultMap.iteritems():
         resultMap[key] = sorted(value, key=lambda item: item[1], reverse=True)
-    # print sort_sims
-    # print resultMap
+
     return resultMap
 
 

@@ -74,13 +74,14 @@ class Deltaload(FlaskForm):
     queryField = StringField("Query Field:")
     updateField = StringField("Update Field:")
 
-    deltaType = SelectField("Delta Type :", choices=[("0", "Insert"),("1", "Delete"),("2", "Query")], coerce=int)
+    deltaType = SelectField("Delta Type :", choices=[("0", "Insert"),("1", "Delete"),("2", "Update")], coerce=int)
 
     submit = SubmitField('Delta Change')
 
 class Query(FlaskForm):
 
     queryField = StringField("Query Field:", [validators.required(), validators.length(max=10)])
+    similarityLevel = StringField("Similarity Level:", [validators.length(max=10)])
     queryType = SelectField("Query Type :", choices=[("0", "Local Query"), ("1", "Singleview Query"), ("2", "Singleview Similarity Query")], coerce=int)
     submit = SubmitField('Query')
 
@@ -110,7 +111,7 @@ def login():
 
             SourceDBs[str(request.form["sourceName"])] = newSource
             session['sourcename'] = str(request.form["sourceName"])
-            return redirect(url_for('table'))
+        return redirect(url_for('table'))
     return render_template('CoolAdmin/clientlogin.html',addrSourceForm=addrSourceForm)
 
 @app.route('/delta',methods=['POST', 'GET'])
@@ -196,7 +197,7 @@ def table():
                     queryFields = json.loads(str(request.form["queryField"]))
 
                     queryResults.extend(
-                        SourceDBs[sourcedbName].singleview_query("query", queryFields, 10000))
+                        SourceDBs[sourcedbName].singleview_query("query", queryFields, 10000,0.0))
 
                 except Exception as e:
                     print 'Invalid Input for query'
@@ -207,10 +208,11 @@ def table():
 
                 try:
 
+                    simLevel = float(str(request.form["similarityLevel"]))
                     queryFields = json.loads(str(request.form["queryField"]))
 
                     queryResults.extend(
-                        SourceDBs[sourcedbName].singleview_query("similarityquery", queryFields, 10000))
+                        SourceDBs[sourcedbName].singleview_query("similarityquery", queryFields, 10000,simLevel))
 
                 except Exception as e:
                     print 'Invalid Input for similarity query'
@@ -248,10 +250,13 @@ def table():
     return render_template('CoolAdmin/tableclient.html', queryform=query,queryresults = queryResults,prescriptionTypes = prescriptionTypes)
 
 
-    recordsInfo = get_Info()
+
+    '''
+    #recordsInfo = get_Info()
     print request.form
     #return render_template('sourcePage.html',addrSourceForm = addrSourceForm,initialLoad = initialLoad,deltaLoad = deltaLoad,query = query,refreash = refreash,queryresults = queryResults,info = recordsInfo)
     return render_template('CoolAdmin/clientDelta.html', addrSourceForm=addrSourceForm, initialLoad=initialLoad,deltaLoad=deltaLoad, query=query, refreash=refreash, queryresults=queryResults,info=recordsInfo)
+    '''
 
 
 if __name__ == '__main__':

@@ -94,4 +94,7 @@ class sendingMessage():
     def withUUID(self,uuid):
         self.uuid = uuid
         return self
+    def withSimilarity(self,similarity):
+        self.sim = similarity
+        return self
 

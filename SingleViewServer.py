@@ -30,12 +30,6 @@ zkclientAdr = '127.0.0.1:2181'
 #TODO:Lock
 SingleviewDB = None
 
-#SingleviewDB = SingleViewDb.register(name='singleviewDb',kafkaclient=kafkaClient,mongodclient=mongoClient,zkclient=zkclientAdr)
-#singleViewDB.set_up_topics(topics=['sourcedb1', 'sourcedb2'])
-#SingleviewDB.register_source("sourcedb1","dental_pain")
-#SingleviewDB.set_up_field_name(["user","account","name"],"dental_pain")
-
-
 prescriptionTypes = {}
 
 @app.route('/test')
@@ -53,7 +47,7 @@ class SetSingleViewForm(FlaskForm):
 
 class RegisterSourceForm(FlaskForm):
     sourceName = StringField("Source Name:",[validators.required(), validators.length(max=20)])
-    fieldName = StringField("Field Name:",[validators.required()])
+    #fieldName = StringField("Field Name:",[validators.required()])
     presType = StringField("PresType Name:",[validators.required(), validators.length(max=30)])
     submit = SubmitField('Submit Register Source')
     submitInit = SubmitField('Initialize')
@@ -63,6 +57,11 @@ class SelectSource(FlaskForm):
     selectLg = SelectField('Sources', choices=[("0","Please select")], coerce=int)
     submit = SubmitField('Submit')
     submitSetCache = SubmitField('SetSimilarityCache')
+
+
+@app.route('/chart',methods=['POST', 'GET'])
+def chart():
+    return "Chart"
 
 @app.route('/',methods=['POST', 'GET'])
 def login():
@@ -85,14 +84,13 @@ def addSource():
     if registerSourceForm.validate_on_submit():
 
         if registerSourceForm.submit.data:
-            fieldNames = map(str, request.form["fieldName"].split(":"))
+            #fieldNames = map(str, request.form["fieldName"].split(":"))
             #print fieldNames
             SingleviewDB.register_source(str(request.form["sourceName"]), str(request.form["presType"]))
-            SingleviewDB.set_up_field_name(fieldNames, str(request.form["presType"]))
+            #SingleviewDB.set_up_field_name(fieldNames, str(request.form["presType"]))
 
         elif registerSourceForm.submitInit.data:
             SingleviewDB.create_consumer_manager()
-            SingleviewDB.calculate_field_levdistance()
             SingleviewDB.initial_load_all()
             return redirect(url_for('index'))
 
@@ -132,6 +130,7 @@ def index():
                 selectPresType = returnInfo.get("presType")[int(request.form["selectLg"])-1]
 
         elif selectSource.submitSetCache.data:
+            print SingleviewDB.keyMapping
             SingleviewDB.set_searchingcache()
 
 

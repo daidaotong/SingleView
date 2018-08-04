@@ -11,15 +11,6 @@ from editdistance import *
 import time
 
 
-def insert(client,updateValue):
-    print "Insert lalalallala"
-    print json.loads(updateValue)
-    insertData = json.loads(updateValue)
-    if insertData:
-        client.insert_many(insertData)
-    return "lol"
-
-
 class ComsumerThread(threading.Thread):
     def __init__(self, update_q,balancedConsumer):
         super(ComsumerThread, self).__init__()
@@ -32,14 +23,9 @@ class ComsumerThread(threading.Thread):
             try:
                 for message in self.balancedConsumer:
                     if message is not None:
-                        print '+++++++++++++'
-                        print message.offset
-                        #print message.value
-                        print '+++++++++++++'
                         receivedMessage = json.loads(message.value)
                         self.update_q.put(receivedMessage)
             except Exception,err:
-                #print "OOPs"
                 print err
 
 
@@ -84,9 +70,6 @@ class Consumer_Thread_Manager():
             w = ComsumerThread(update_q=self.event_queue,balancedConsumer=balanced_consumer)
             w.start()
             self.sourceDb_consumer_thread_map[topic] = w
-            print "&&&&&&&&&&&"
-            print topic
-            print "&&&&&&&&&&&"
 
         print  self.sourceDb_consumer_thread_map
         print threading.active_count()
@@ -94,38 +77,25 @@ class Consumer_Thread_Manager():
 
     def __query_table(self,querycommand,returntopic,uuid,sourceType):
 
-        print "^^^^^^^^^^^^"
-
-        print "Got query command"
-        print querycommand
         result = self.singleviewDb.expandSearch(querycommand,fuzzyquery=True,presType=sourceType)
-        #print result
-        #print returntopic
-        #print uuid
         self.singleviewDb.send_back_queryresult(returntopic,result,uuid)
 
 
-    def __query_table_with_similarities(self,querycommand,returntopic,uuid,localquery,sourceType):
+    def __query_table_with_similarities(self,querycommand,returntopic,uuid,localquery,sourceType,simLevel):
 
         print "Got similarityquery command"
         print querycommand
-        #print localquery
 
         rawresult = self.singleviewDb.expandSearch(querycommand)
 
         rawresultcopy = deepcopy(rawresult)
-        filteredList = self.singleviewDb.similarityCache.getSimilarRecordWithThreshold(localQueries = localquery,rawResult = self.singleviewDb.separate_prescription(rawresultcopy),sourceType = sourceType)
+        filteredList = self.singleviewDb.similarityCache.getSimilarRecordWithThreshold(localQueries = localquery,rawResult = self.singleviewDb.separate_prescription(rawresultcopy),sourceType = sourceType,threshold = simLevel)
 
-
-        #print "999999999"
-        #print rawresult
-        #print "999999999"
+        print "rtrtrtrtrrt"
+        print simLevel
+        print "rtrtrtrtrrt"
         self.singleviewDb.send_back_queryresult(returntopic, [val[1] for val in zip(filteredList, rawresult) if val[0]], uuid)
 
-
-
-        # TODO: insery similarity tags
-        #self.singleviewDb.send_back_queryresult(returntopic, result, uuid)
 
 
 
@@ -134,14 +104,9 @@ class Consumer_Thread_Manager():
             try:
                 update_body = self.event_queue.get(True, 0.5)
 
-                #print "fhfhfhfhff"
-                #print update_body
-                #print "fhfhfhfhff"
                 if update_body.has_key('type') and update_body.has_key('value'):
 
                     if update_body['type'] == 'insert':
-                        print "Insert lalalallala"
-                        #print json.loads(update_body['value'])
                         insertData = json.loads(update_body['value'])
                         if insertData:
                             self.singleViewClient.insert_many(insertData)
@@ -149,12 +114,10 @@ class Consumer_Thread_Manager():
 
                     elif update_body['type'] == 'delete':
                         print "Got delete command"
-                        print json.loads(update_body['value'])
                         self.singleViewClient.remove(json.loads(update_body['value']))
                         print "Time To Finish Delete:{0}".format(str(time.time()))
                     elif update_body['type'] == 'update':
                         print "Got update command"
-                        print json.loads(update_body['value'])
                         updateBodyQuery = json.loads(json.loads(update_body['value']))
                         updateBodyUpdate = {"$set": json.loads(json.loads(update_body['value']))}
                         print "Time To Finish Update:{0}".format(str(time.time()))
@@ -170,7 +133,7 @@ class Consumer_Thread_Manager():
                     elif update_body['type'] == 'similarityquery':
                         if update_body['returntopic'] and update_body['uuid']  and update_body['source']:
                             threading.Thread(target=self.__query_table_with_similarities,
-                                             args=(update_body['value'],update_body['returntopic'],update_body['uuid'],update_body['localquery'],update_body['source'],)).start()
+                                             args=(update_body['value'],update_body['returntopic'],update_body['uuid'],update_body['localquery'],update_body['source'],update_body['sim'],)).start()
                         else:
                             raise Exception('No Returning Topic or uuid or local queries in Similarity Query')
 
@@ -300,8 +263,12 @@ class SingleViewDb(ApplicationWarehouseABC):
         for sourcedbName in sourcedbNames:
             sourceRecords = self.mongod_client.get_database()[sourcedbName].find()
 
-            allRecords.extend([self.pre_process_for_load(r,self.sourcePresMap[sourcedbName]) for r in sourceRecords])
+            processedSourceRecords = [self.pre_process_for_load(r,self.sourcePresMap[sourcedbName]) for r in sourceRecords]
+            if processedSourceRecords:
+                self.set_up_field_name(processedSourceRecords[0].keys(),self.sourcePresMap[sourcedbName])
+            allRecords.extend(processedSourceRecords)
 
+        self.calculate_field_levdistance()
         self.get_mongod().insert_many(allRecords)
 
 
@@ -609,7 +576,7 @@ class SourceDb(ApplicationWarehouseABC):
         print "Time To Finish Local Query:{0}".format(str(time.time()))
         return records
 
-    def singleview_query(self,type,query,timeout):
+    def singleview_query(self,type,query,timeout,simLevel):
 
         print "Time To Start Singleview Query:{0} Type {1}".format(str(time.time()),type)
 
@@ -628,7 +595,7 @@ class SourceDb(ApplicationWarehouseABC):
         elif type == 'similarityquery':
             localQueryResult = [self.remove_id(r) for r in self.local_query(query)]
             #calculate the similarities of the field levenstein distance or word2vec
-            sendingobject = sendingMessage('similarityquery', querySendJson).withSource(self.presType).withLocalQueryResults(localQueryResult).withReturnTopic(self.name+'query').withUUID(uuidval)
+            sendingobject = sendingMessage('similarityquery', querySendJson).withSource(self.presType).withLocalQueryResults(localQueryResult).withReturnTopic(self.name+'query').withUUID(uuidval).withSimilarity(simLevel)
 
 
         if self.kafka_client != None:
