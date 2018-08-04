@@ -2,6 +2,7 @@ from gensim import corpora, models, similarities, matutils,utils
 from gensim.models import KeyedVectors
 import numpy as np
 
+#Word2vec Experiment
 testString = ['PAST_MEDICAL_HISTORY','PAST_SURGICAL_HISTORY','PHYSICAL_EXAMINATION']
 '''
 word_vectors = KeyedVectors.load_word2vec_format('~/Downloads/GoogleNews-vectors-negative300.bin', binary=True)

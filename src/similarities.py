@@ -36,7 +36,7 @@ def calculatePresTypeDistanceMatrix(presList):
 
 
 
-
+#Expand the gensim.TFIDF model for supporting new way for calculating the importance of each words
 class newTfidfModel(models.TfidfModel):
         def __init__(self,corpus=None,id2word=None, dictionary=None, wlocal=utils.identity,
                  wglobal=models.tfidfmodel.df2idf, normalize=True, smartirs=None,usingcustom = False):
@@ -65,6 +65,7 @@ class newTfidfModel(models.TfidfModel):
                         self.presType2Id[presType] = index
                         self.id2PresType[index] = presType
 
+        '''
         def setCustomIdfMatOld(self):
                 idfDict = {}
                 for tup in self.wholeCorpus:
@@ -84,6 +85,8 @@ class newTfidfModel(models.TfidfModel):
                                         idfDict[presType][temid] = idfs
 
                 return idfDict
+                
+        '''
 
         def setCustomIdfMat(self):
                 newIdfDict = {}
@@ -232,7 +235,7 @@ class SimilarityCache(SearchCacheABC):
         #index = similarities.MatrixSimilarity(lda[tfidf_model[bow_corpus]])
 
 
-    #return the
+    #return the similar record with a certain threshold
     def getSimilarRecordWithThreshold(self,threshold = 0.75,localQueries = None,rawResult = None,sourceType = None):
 
         if not localQueries or not rawResult or not sourceType:

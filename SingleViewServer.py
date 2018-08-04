@@ -40,14 +40,12 @@ def test():
 
 class SetSingleViewForm(FlaskForm):
     singleViewName = StringField("Single View Name:",[validators.required(), validators.length(max=20)])
-    #similarityLevel = StringField("Similarity Level:",[validators.required()])
     databaseName = StringField("Database Name:",[validators.required(), validators.length(max=20)])
 
     submit = SubmitField('Submit Single View')
 
 class RegisterSourceForm(FlaskForm):
     sourceName = StringField("Source Name:",[validators.required(), validators.length(max=20)])
-    #fieldName = StringField("Field Name:",[validators.required()])
     presType = StringField("PresType Name:",[validators.required(), validators.length(max=30)])
     submit = SubmitField('Submit Register Source')
     submitInit = SubmitField('Initialize')
@@ -84,10 +82,7 @@ def addSource():
     if registerSourceForm.validate_on_submit():
 
         if registerSourceForm.submit.data:
-            #fieldNames = map(str, request.form["fieldName"].split(":"))
-            #print fieldNames
             SingleviewDB.register_source(str(request.form["sourceName"]), str(request.form["presType"]))
-            #SingleviewDB.set_up_field_name(fieldNames, str(request.form["presType"]))
 
         elif registerSourceForm.submitInit.data:
             SingleviewDB.create_consumer_manager()
@@ -134,27 +129,13 @@ def index():
             SingleviewDB.set_searchingcache()
 
 
-    print "***********"
-    print selectPresType
-    print prescriptionTypes
-    print prescriptionTypes.get(selectPresType)
-    print "***********"
-
-
     presData = dict()
     if prescriptionTypes.get(selectPresType):
         presData = prescriptionTypes.get(selectPresType)
-    print "***************&"
-    print prescriptionTypes
-    print returnInfo
-    print "***************&"
     return render_template('CoolAdmin/table.html',selectSource = selectSource,prescriptionTypes=presData, infoDict=returnInfo)
 
 
 if __name__ == '__main__':
     app.run(debug=True,port=5001)
-    #sourceDB1.initial_load()
 
-
-    #singleViewDB.set_searchingcache()
 

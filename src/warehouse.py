@@ -321,8 +321,6 @@ class SingleViewDb(ApplicationWarehouseABC):
     #todo: only support first query key for now
     def expandSearch(self,querycommand,fuzzyquery = False,presType = None):
         querycommanddict = json.loads(querycommand)
-        print "Uuuuuuuuuu"
-        print querycommanddict
         if fuzzyquery:
             if len(querycommanddict) > 1:
                 print "Does not support fuzzy query for more than one keys"
@@ -342,9 +340,6 @@ class SingleViewDb(ApplicationWarehouseABC):
                         newName = key
                         del querycommanddictCopy[k]
                         querycommanddictCopy[newName] = v
-                        print "hahahahhahahahhahahahhah"
-                        print querycommanddictCopy
-                        print [self.remove_id(i) for i in self.get_mongod().find(querycommanddictCopy)]
                         basicResult.extend([self.remove_id(i) for i in self.get_mongod().find(querycommanddictCopy)])
 
 
@@ -367,9 +362,6 @@ class SingleViewDb(ApplicationWarehouseABC):
 
             sendingTopic = self.get_kafka_topic(str(topic))
 
-            #print "777777777"
-            #print val
-            #print "777777777"
             resultJson = json.dumps(val)
             sendingobject = sendingMessage('queryresult', resultJson).withUUID(uuidval)
             try:
@@ -536,8 +528,6 @@ class SourceDb(ApplicationWarehouseABC):
                 except Exception as e:
                     print 'got exception'
                     print e
-            print "66666666666666"
-            print query
             self.db_repo.remove(query)
 
 

@@ -1,9 +1,13 @@
 # this python file is for parsing the data from two directories positive and negetive
 import os
 
+#Load the file from path with two different subdirectories, positive and negative for evaluation
 def ParseDirectory(path):
-    #PositiveData = {}
-    #NegativeData = {}
+    '''
+
+    :param path: the path of the evaluation files
+    :return: dictionary with positive and negative as the key for positive and negative records
+    '''
     TotalData = {}
     Positive = {}
     Negative = {}

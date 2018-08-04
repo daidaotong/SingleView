@@ -32,23 +32,9 @@ zkclientAdr = '127.0.0.1:2181'
 
 SourceDBs = {}
 
-#prescriptionTypes = {}
-'''
-singleViewDB.register_source("sourcedb2","dental_illness")
-singleViewDB.set_up_field_name(["user1","accountId","usname"],"dental_illness")
-singleViewDB.create_consumer_manager()
-#must be called after the set_field_name function
-singleViewDB.calculate_field_levdistance()
-#print singleViewDB.keyMapping
-#print singleViewDB.fieldLevDistance
-#singleViewDB.set_searchingcache()
-#searchCache =
-
-'''
 
 @app.route('/test')
 def test():
-    #singleViewDB.set_up_topics(topics = ['sourcedb1','sourcedb2'])
     return 'Hello World!'
 
 class AddSourceForm(FlaskForm):
@@ -220,7 +206,6 @@ def table():
 
 
             elif str(request.form["queryType"]) == "0":
-                print "hhhshdhdd"
 
                 try:
 
@@ -249,14 +234,6 @@ def table():
 
     return render_template('CoolAdmin/tableclient.html', queryform=query,queryresults = queryResults,prescriptionTypes = prescriptionTypes)
 
-
-
-    '''
-    #recordsInfo = get_Info()
-    print request.form
-    #return render_template('sourcePage.html',addrSourceForm = addrSourceForm,initialLoad = initialLoad,deltaLoad = deltaLoad,query = query,refreash = refreash,queryresults = queryResults,info = recordsInfo)
-    return render_template('CoolAdmin/clientDelta.html', addrSourceForm=addrSourceForm, initialLoad=initialLoad,deltaLoad=deltaLoad, query=query, refreash=refreash, queryresults=queryResults,info=recordsInfo)
-    '''
 
 
 if __name__ == '__main__':

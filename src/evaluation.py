@@ -7,6 +7,11 @@ from stopwords import get_stopwords
 from gensim.models.callbacks import CoherenceMetric, DiffMetric, PerplexityMetric, ConvergenceMetric
 
 def mapLabel(label):
+    '''
+
+    :param label: label for string 'Positive' or 'Negative'
+    :return: 1 for input 'Positive' and -1 for 'Negative'
+    '''
     print label
     if label == 'Positive':
         return 1
@@ -16,15 +21,34 @@ def mapLabel(label):
         raise ValueError("Wrong label type!")
 
 def recoverLabel(num):
+    '''
+
+    :param num: input 1 or -1 for positive and negative set
+    :return: label for 'Positive' and 'Negative'
+    '''
     if num > 0:
         return 'Positive'
     else:
         return 'Negative'
 
 def gaussian(dist, a=1, b=0, c=0.3):
+    '''
+
+    :param dist: distance
+    :param a: scaling parameter
+    :param b: mean
+    :param c: variance
+    :return: value after gaussian flat
+    '''
     return a * math.e ** (-(dist - b) ** 2 / (2 * c ** 2))
 
 def weightedKNN(similarities,numNeighbors = 5):
+    '''
+
+    :param similarities: document similarity list
+    :param numNeighbors: neighbors for count
+    :return: the predicted label of this document
+    '''
 
     labelWeight = 0
     totalWeight = 0
@@ -51,6 +75,13 @@ def weightedKNN(similarities,numNeighbors = 5):
     return recoverLabel(labelWeight/(totalWeight))
 
 def splitTrainTestSet(data,testingSetPercentage = 0.2):
+
+    '''
+
+    :param data: dataset
+    :param testingSetPercentage: the percentage of test set
+    :return: splitted set of train and test
+    '''
     lenData = len(data)
     trainingSetIndex = range(lenData)
     testingSetIndex = []
@@ -72,6 +103,14 @@ def splitTrainTestSet(data,testingSetPercentage = 0.2):
 
 
 def tuneNumTopics(dataDict=dict(),numTopicsLower = 10,numTopicsUpper = 49,size = 5):
+    '''
+
+    :param dataDict: the dataset
+    :param numTopicsLower: lower bound of num topics
+    :param numTopicsUpper: upper bound of num topics
+    :param size: jump size
+    :return: u_mass and c_v topic coherence test saved as image
+    '''
 
     if not dataDict:
         raise ValueError("Data dict must not be empty")
@@ -149,33 +188,6 @@ def tuneNumTopics(dataDict=dict(),numTopicsLower = 10,numTopicsUpper = 49,size =
     plt.ylabel("U_Mass coherence score")
     plt.legend(["LDA with new TF-IDF Model","LDA with traditional TF-IDF Model"],loc='best')
     f2.savefig('fig2.png')  # save the figure to file
-
-
-    '''
-    # calculating the log perplexity per word as obtained by gensim code
-    ##https://radimrehurek.com/gensim/models/atmodel.html
-    # parameters: pass in trained corpus
-    # return: graph of perplexity per word for varying number of topics
-    parameter_list = range(1, 500, 100)
-    grid = {}
-
-    for parameter_value in parameter_list:
-        model = models.LdaMulticore(corpus=corpus, workers=None, id2word=None,
-                                    num_topics=parameter_value, iterations=10)
-    grid[parameter_value] = []
-
-    perplex = model.log_perplexity(corpus, total_docs=len(corpus))
-    grid[parameter_value].append(perplex)
-
-    df = pd.DataFrame(grid)
-    ax = plt.figure(figsize=(7, 4), dpi=300).add_subplot(111)
-    df.iloc[0].transpose().plot(ax=ax, color="#254F09")
-    plt.xlim(parameter_list[0], parameter_list[-1])
-    plt.ylabel('Perplexity')
-    plt.xlabel('topics')
-    plt.show()
-
-    '''
 
 
 

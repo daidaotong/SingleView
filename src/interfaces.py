@@ -2,6 +2,9 @@ import logging
 
 #the application warehouse class holds the ether the single view database or the individual database before merged
 class ApplicationWarehouseABC(object):
+    '''
+    Single view and source systems parent class
+    '''
 
     name = None
     kafka_client = None
@@ -53,6 +56,10 @@ class ApplicationWarehouseABC(object):
 #the search engine class holds the infos of similarity and will forward the searching into the singleview database
 class SearchCacheABC(object):
 
+    '''
+    search cache parent class
+    '''
+
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
@@ -70,6 +77,9 @@ class SearchCacheABC(object):
 
 
 class sendingMessage():
+    '''
+    Define the message format for source system sending to the Kafka
+    '''
 
     def __init__(self,type,value):
         self.type = type
