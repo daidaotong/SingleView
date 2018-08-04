@@ -61,9 +61,3 @@ the following steps illustrates how to do the Single View Querying:
 
 This project is licensed under the MIT License
 
-## Acknowledgments
-
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
-
